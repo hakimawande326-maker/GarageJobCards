@@ -1,0 +1,39 @@
+@model GarageJobCards.Models.JobCard
+@using System.Linq
+@{
+ ViewData["Title"] = "Assign Mechanic";
+ Layout = "~/Views/Shared/_AdminLayout.cshtml";
+ var mechanics = ViewBag.Mechanics as System.Collections.Generic.List<GarageJobCards.Models.User>;
+}
+
+<div class="page-head">
+ <h1>Assign a Mechanic</h1>
+ <p>@Model.JobNumber - @Model.Vehicle.Make @Model.Vehicle.Model (@Model.Vehicle.PlateNumber) - @Model.Customer.FullName</p>
+</div>
+
+<div class="form-card">
+ <p style="color:var(--paper-dim); font-size:14px; margin-bottom:22px;">@Model.ServiceRequested</p>
+
+ @if (mechanics == null || !mechanics.Any())
+ {
+ <p style="color:#ff6b6b;">No mechanic accounts exist yet - register one from the Manager registration screen first.</p>
+ }
+ else
+ {
+ using (Html.BeginForm("AssignMechanic", "JobCard", new { id = Model.Id }, FormMethod.Post))
+ {
+ @Html.AntiForgeryToken()
+ <div class="form-row">
+ <label for="mechanicId">Mechanic</label>
+ <select name="mechanicId" id="mechanicId">
+ @foreach (var m in mechanics)
+ {
+ var selected = Model.AssignedMechanicId == m.Id ? "selected=\"selected\"" : "";
+ @Html.Raw("<option value=\"" + m.Id + "\" " + selected + ">" + m.FullName + "</option>")
+ }
+ </select>
+ </div>
+ <button type="submit" class="submit-btn">Assign</button>
+ }
+ }
+</div>

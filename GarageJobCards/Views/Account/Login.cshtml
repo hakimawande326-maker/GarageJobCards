@@ -1,0 +1,93 @@
+@{
+ ViewData["Title"] = "Log In";
+ Layout = "~/Views/Shared/_AdminLayout.cshtml";
+ string selectedRole = ViewBag.SelectedRole ?? "Receptionist";
+}
+
+<div class="page-head">
+ <h1>Log In</h1>
+ <p>Pick your role, then sign in.</p>
+</div>
+
+<div class="form-card">
+ @if (ViewBag.Error != null)
+ {
+ <p style="color:#ff6b6b; margin-bottom:20px;">@ViewBag.Error</p>
+ }
+
+ <div class="role-switch" id="roleSwitch">
+ <div class="role-switch-highlight" id="roleHighlight"></div>
+ <button type="button" class="role-option" data-role="Receptionist">Receptionist</button>
+ <button type="button" class="role-option" data-role="Manager">Manager</button>
+ <button type="button" class="role-option" data-role="Mechanic">Mechanic</button>
+ <button type="button" class="role-option" data-role="Customer">Customer</button>
+ </div>
+
+ @using (Html.BeginForm("Login", "Account", FormMethod.Post))
+ {
+ @Html.AntiForgeryToken()
+ <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
+ <input type="hidden" name="role" id="roleInput" value="@selectedRole" />
+
+ <div class="form-row">
+ <label for="email">Email</label>
+ <input type="email" id="email" name="email" required="required" autofocus="autofocus" />
+ </div>
+ <div class="form-row">
+ <label for="password">Password</label>
+ <input type="password" id="password" name="password" required="required" />
+ </div>
+ <button type="submit" class="submit-btn">Log In as <span id="roleLabelInBtn">@selectedRole</span></button>
+ }
+
+ <p style="margin-top:16px; font-size:13px;">
+ <a href="@Url.Action("ForgotPassword","Account")" style="color:var(--ice);">Forgot your password?</a>
+ </p>
+
+ <p style="color:var(--steel); font-size:12px; margin-top:22px; font-family:'Space Mono',monospace;">
+ Demo accounts (password: Password1) - reception@philasauto.co.za - manager@philasauto.co.za -
+ sdube@philasauto.co.za - thandeka@example.com
+ </p>
+</div>
+
+@section Scripts {
+ <script>
+ (function () {
+ var switchEl = document.getElementById("roleSwitch");
+ var highlight = document.getElementById("roleHighlight");
+ var input = document.getElementById("roleInput");
+ var label = document.getElementById("roleLabelInBtn");
+ var buttons = switchEl.querySelectorAll(".role-option");
+
+ function selectRole(button, animate) {
+ buttons.forEach(function (b) { b.classList.remove("active"); });
+ button.classList.add("active");
+ input.value = button.getAttribute("data-role");
+ label.textContent = button.getAttribute("data-role");
+
+ var rect = button.getBoundingClientRect();
+ var containerRect = switchEl.getBoundingClientRect();
+ if (!animate) highlight.style.transition = "none";
+ highlight.style.width = rect.width + "px";
+ highlight.style.transform = "translateX(" + (rect.left - containerRect.left) + "px)";
+ if (!animate) {
+ // force reflow then restore transition
+ void highlight.offsetWidth;
+ highlight.style.transition = "";
+ }
+ }
+
+ buttons.forEach(function (button) {
+ button.addEventListener("click", function () { selectRole(button, true); });
+ });
+
+ // Pre-select based on ViewBag.SelectedRole (or default Receptionist)
+ var initial = Array.prototype.find.call(buttons, function (b) {
+ return b.getAttribute("data-role") === input.value;
+ }) || buttons[0];
+
+ window.addEventListener("load", function () { selectRole(initial, false); });
+ selectRole(initial, false);
+ })();
+ </script>
+}

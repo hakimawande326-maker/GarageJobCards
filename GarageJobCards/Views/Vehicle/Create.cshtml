@@ -1,0 +1,90 @@
+@model GarageJobCards.Models.Vehicle
+@using System.Linq
+@{
+ ViewData["Title"] = "Register Vehicle";
+ Layout = "~/Views/Shared/_AdminLayout.cshtml";
+ var customers = ViewBag.Customers as System.Collections.Generic.List<GarageJobCards.Models.User>;
+ string serviceRequested = ViewBag.ServiceRequested as string;
+ decimal? estimateAmount = ViewBag.EstimateAmount as decimal?;
+ var vehicleModel = Model ?? new GarageJobCards.Models.Vehicle();
+}
+
+<div class="page-head">
+ <h1>Register a Vehicle</h1>
+ <p>Attach a vehicle to a customer's account and open its first job card in one go.</p>
+</div>
+
+<div class="form-card">
+ @if (TempData["Success"] != null)
+ {
+ <div class="alert-success">
+ <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+ <span>@TempData["Success"]</span>
+ </div>
+ }
+
+ @if (customers == null || !customers.Any())
+ {
+ <p style="color:#ff6b6b;">No customers registered yet - <a href="@Url.Action("Register","User")" style="color:var(--ice);">register one first</a>.</p>
+ }
+ else
+ {
+ using (Html.BeginForm("Create", "Vehicle", FormMethod.Post))
+ {
+ @Html.AntiForgeryToken()
+ @Html.ValidationSummary(true, "", new { @class = "validation-summary-errors" })
+
+ <div class="form-row">
+ <label for="OwnerId">Customer</label>
+ <select name="OwnerId" id="OwnerId">
+ @foreach (var c in customers)
+ {
+ var selected = vehicleModel.OwnerId == c.Id ? "selected=\"selected\"" : "";
+ @Html.Raw("<option value=\"" + c.Id + "\" " + selected + ">" + c.FullName + " (" + c.Phone + ")</option>")
+ }
+ </select>
+ </div>
+
+ <div class="form-grid-2">
+ <div class="form-row">
+ @Html.LabelFor(m => m.Make)
+ @Html.TextBoxFor(m => m.Make)
+ @Html.ValidationMessageFor(m => m.Make)
+ </div>
+ <div class="form-row">
+ @Html.LabelFor(m => m.Model)
+ @Html.TextBoxFor(m => m.Model)
+ @Html.ValidationMessageFor(m => m.Model)
+ </div>
+ </div>
+
+ <div class="form-grid-2">
+ <div class="form-row">
+ @Html.LabelFor(m => m.PlateNumber)
+ @Html.TextBoxFor(m => m.PlateNumber)
+ @Html.ValidationMessageFor(m => m.PlateNumber)
+ </div>
+ <div class="form-row">
+ @Html.LabelFor(m => m.Mileage)
+ @Html.TextBoxFor(m => m.Mileage)
+ </div>
+ </div>
+
+ <div class="form-row" style="border-top:1px dashed var(--steel-dim); padding-top:20px; margin-top:6px;">
+ <label for="ServiceRequested">What's wrong / service requested</label>
+ <textarea name="ServiceRequested" id="ServiceRequested" rows="4">@serviceRequested</textarea>
+ @if (ViewData.ModelState["ServiceRequested"] != null && ViewData.ModelState["ServiceRequested"].Errors.Count > 0)
+ {
+ <span class="field-validation-error">@ViewData.ModelState["ServiceRequested"].Errors[0].ErrorMessage</span>
+ }
+ </div>
+
+ <div class="form-row">
+ <label for="EstimateAmount">Quoted amount (R) - optional, can add later</label>
+ <input type="number" step="0.01" name="EstimateAmount" id="EstimateAmount" value="@estimateAmount" placeholder="Leave blank until diagnosed" />
+ </div>
+
+ <button type="submit" class="submit-btn">Register Vehicle &amp; Create Job Card</button>
+ }
+ }
+</div>

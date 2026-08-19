@@ -1,0 +1,53 @@
+@model GarageJobCards.Models.JobCard
+@using System.Linq
+@{
+ ViewData["Title"] = "Create Job Card";
+ Layout = "~/Views/Shared/_AdminLayout.cshtml";
+ var vehicles = ViewBag.Vehicles as System.Collections.Generic.List<GarageJobCards.Models.Vehicle>;
+}
+
+<div class="page-head">
+ <h1>Create Job Card</h1>
+ <p>Pick the vehicle and describe the job - this creates the digital work order.</p>
+</div>
+
+<div class="form-card">
+ @if (vehicles == null || !vehicles.Any())
+ {
+ <p style="color:var(--paper-dim); margin-bottom:20px;">
+ No vehicles registered yet. <a href="@Url.Action("Register","User")" style="color:var(--ice);">Register a customer</a> first, which will lead you straight into registering their vehicle.
+ </p>
+ }
+ else
+ {
+ using (Html.BeginForm("Create", "JobCard", FormMethod.Post))
+ {
+ @Html.AntiForgeryToken()
+ @Html.ValidationSummary(true, "", new { @class = "validation-summary-errors" })
+
+ <div class="form-row">
+ <label for="VehicleId">Vehicle</label>
+ <select name="VehicleId" id="VehicleId">
+ @foreach (var v in vehicles)
+ {
+ var selected = Model.VehicleId == v.Id ? "selected=\"selected\"" : "";
+ @Html.Raw("<option value=\"" + v.Id + "\" " + selected + ">" + v.PlateNumber + " - " + v.Make + " " + v.Model + " (" + v.Owner.FullName + ")</option>")
+ }
+ </select>
+ </div>
+
+ <div class="form-row">
+ @Html.LabelFor(m => m.ServiceRequested)
+ @Html.TextAreaFor(m => m.ServiceRequested, new { rows = 4 })
+ @Html.ValidationMessageFor(m => m.ServiceRequested)
+ </div>
+
+ <div class="form-row">
+ @Html.LabelFor(m => m.EstimateAmount)
+ @Html.TextBoxFor(m => m.EstimateAmount, new { placeholder = "Leave blank until diagnosed" })
+ </div>
+
+ <button type="submit" class="submit-btn">Create Job Card</button>
+ }
+ }
+</div>

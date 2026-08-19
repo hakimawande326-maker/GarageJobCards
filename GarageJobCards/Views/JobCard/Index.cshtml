@@ -1,0 +1,166 @@
+@model IEnumerable<GarageJobCards.Models.JobCard>
+@using System.Linq
+@{
+ ViewData["Title"] = "Job Board";
+ Layout = "~/Views/Shared/_AdminLayout.cshtml";
+ var mechanics = ViewBag.Mechanics as System.Collections.Generic.List<GarageJobCards.Models.User>;
+
+ var columns = new[]
+ {
+ GarageJobCards.Models.JobStatus.Booked,
+ GarageJobCards.Models.JobStatus.DiagnosticsInProgress,
+ GarageJobCards.Models.JobStatus.AwaitingApproval,
+ GarageJobCards.Models.JobStatus.InProgress,
+ GarageJobCards.Models.JobStatus.QualityCheck,
+ GarageJobCards.Models.JobStatus.ReadyForPickup
+ };
+}
+
+<div class="page-head" style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px;">
+ <div>
+ <h1>Job Board</h1>
+ <p>@Model.Count() active job@(Model.Count() == 1 ? "" : "s") - drag a card to move it, or use search to find one fast.</p>
+ </div>
+ <div style="display:flex; gap:12px;">
+ <a href="@Url.Action("Register","User")" class="submit-btn" style="text-decoration:none; display:inline-block;">+ Register Customer</a>
+ </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+ <div class="alert-success">
+ <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+ <span>@TempData["Success"]</span>
+ </div>
+}
+
+<div class="board-toolbar">
+ <div class="board-search">
+ <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+ <input type="text" id="boardSearch" placeholder="Search by plate, customer, or job number..." autocomplete="off" />
+ </div>
+ <select id="mechanicFilter">
+ <option value="">All mechanics</option>
+ <option value="__unassigned__">Unassigned only</option>
+ @if (mechanics != null)
+ {
+ foreach (var m in mechanics)
+ {
+ @Html.Raw("<option value=\"" + Html.Encode(m.FullName) + "\">" + Html.Encode(m.FullName) + "</option>")
+ }
+ }
+ </select>
+ <span id="boardNoResults" class="board-no-results" style="display:none;">No jobs match your search.</span>
+</div>
+
+<div class="board">
+ @foreach (var status in columns)
+ {
+ var jobsInColumn = Model.Where(j => j.Status == status).ToList();
+ <div class="board-column" data-status="@status">
+ <div class="board-column-head">
+ <span>@GarageJobCards.Models.JobCard.StatusLabel(status)</span>
+ <span class="count">@jobsInColumn.Count</span>
+ </div>
+ <div class="board-column-body" data-status="@status">
+ @foreach (var job in jobsInColumn)
+ {
+ var mechanicName = job.AssignedMechanic != null ? job.AssignedMechanic.FullName : "";
+ var initials = job.Customer.FullName.Length > 0
+ ? string.Join("", job.Customer.FullName.Split(' ').Where(p => p.Length > 0).Take(2).Select(p => p[0]))
+ : "?";
+ var searchBlob = (job.JobNumber + " " + job.Customer.FullName + " " + job.Vehicle.PlateNumber + " " + job.Vehicle.Make + " " + job.Vehicle.Model).ToLower();
+
+ <a href="@Url.Action("Details", new { id = job.Id })"
+ class="job-card-mini"
+ draggable="true"
+ data-id="@job.Id"
+ data-mechanic="@mechanicName"
+ data-search="@searchBlob">
+ <div class="job-card-top">
+ <div class="job-avatar">@initials.ToUpper()</div>
+ <div class="job-card-titles">
+ <div class="num">@job.JobNumber</div>
+ <h4>@job.Customer.FullName</h4>
+ </div>
+ </div>
+ <div class="veh">@job.Vehicle.Make @job.Vehicle.Model - @job.Vehicle.PlateNumber</div>
+ <div class="job-card-footer">
+ <span class="mech-pill @(job.AssignedMechanic == null ? "unassigned" : "")">
+ @(job.AssignedMechanic != null ? job.AssignedMechanic.FullName : "Unassigned")
+ </span>
+ <span class="price-pill">R@(job.EstimateAmount?.ToString("N0") ?? " - ")</span>
+ </div>
+ @if (job.EstimatedCompletionUtc.HasValue)
+ {
+ <div class="meta" style="color:var(--ice); margin-top:8px;">
+ Est. done: @job.EstimatedCompletionUtc.Value.ToLocalTime().ToString("dd MMM, HH:mm")
+ </div>
+ }
+ </a>
+ }
+ </div>
+ </div>
+ }
+</div>
+
+@if (Session["UserRole"] != null && Session["UserRole"].ToString() == "Manager")
+{
+<div style="margin-top:40px;">
+ <h3 style="font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:16px; margin-bottom:14px; color:var(--steel);">Assign a Mechanic</h3>
+ <div style="display:flex; flex-wrap:wrap; gap:12px;">
+ @foreach (var job in Model.Where(j => j.AssignedMechanicId == null))
+ {
+ <a href="@Url.Action("AssignMechanic", new { id = job.Id })" class="btn-ghost" style="text-decoration:none; padding:10px 18px; font-size:12px;">
+ @job.JobNumber - @job.Vehicle.PlateNumber
+ </a>
+ }
+ @if (!Model.Any(j => j.AssignedMechanicId == null))
+ {
+ <span style="color:var(--paper-dim); font-size:14px;">Every active job has a mechanic assigned.</span>
+ }
+ </div>
+</div>
+}
+
+@section Scripts {
+ <script src="~/Scripts/jobcard.js"></script>
+ <script>
+ (function () {
+ var searchInput = document.getElementById("boardSearch");
+ var mechanicFilter = document.getElementById("mechanicFilter");
+ var noResults = document.getElementById("boardNoResults");
+ var cards = Array.prototype.slice.call(document.querySelectorAll(".job-card-mini"));
+
+ function applyFilters() {
+ var query = searchInput.value.trim().toLowerCase();
+ var mechanic = mechanicFilter.value;
+ var visibleCount = 0;
+
+ cards.forEach(function (card) {
+ var matchesSearch = !query || card.getAttribute("data-search").indexOf(query) !== -1;
+ var cardMechanic = card.getAttribute("data-mechanic");
+ var matchesMechanic =
+ !mechanic ||
+ (mechanic === "__unassigned__" && !cardMechanic) ||
+ (mechanic !== "__unassigned__" && cardMechanic === mechanic);
+
+ var show = matchesSearch && matchesMechanic;
+ card.style.display = show ? "" : "none";
+ if (show) visibleCount++;
+ });
+
+ document.querySelectorAll(".board-column").forEach(function (col) {
+ var visibleInCol = col.querySelectorAll('.job-card-mini:not([style*="display: none"])').length;
+ var badge = col.querySelector(".count");
+ if (badge) badge.textContent = visibleInCol;
+ });
+
+ noResults.style.display = visibleCount === 0 ? "inline" : "none";
+ }
+
+ searchInput.addEventListener("input", applyFilters);
+ mechanicFilter.addEventListener("change", applyFilters);
+ })();
+ </script>
+}

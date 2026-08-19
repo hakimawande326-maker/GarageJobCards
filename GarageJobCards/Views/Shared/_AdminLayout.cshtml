@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+ <title>@ViewData["Title"] - Phila's Auto Repair Shop</title>
+ <link rel="stylesheet" href="~/Content/phila-auto.css" />
+ <link rel="stylesheet" href="~/Content/jobcard.css" />
+</head>
+<body style="background:var(--asphalt); color:var(--paper); font-family:'Inter',sans-serif;">
+
+@{
+ var role = Session["UserRole"] as string;
+ var userName = Session["UserName"] as string;
+}
+
+<div class="admin-shell">
+ <nav class="admin-nav no-print">
+ <a href="@Url.Action("Index","Home")" class="brand">PHILA'S <span>AUTO</span></a>
+ <div class="links">
+ <a href="@Url.Action("Index","Home")">Site</a>
+
+ @if (role == "Receptionist" || role == "Manager")
+ {
+ <a href="@Url.Action("Index","JobCard")">Job Board</a>
+ <a href="@Url.Action("Register","User")">Register Customer</a>
+ }
+ @if (role == "Manager")
+ {
+ <a href="@Url.Action("Index","Analytics")">View Analytics</a>
+ }
+ @if (role == "Mechanic")
+ {
+ <a href="@Url.Action("MyJobs","JobCard")">My Jobs</a>
+ }
+ @if (role == "Customer")
+ {
+ <a href="@Url.Action("MyBookings","JobCard")">My Bookings</a>
+ }
+
+ @if (role != null)
+ {
+ <span style="color:var(--steel); font-size:12px;">@userName (@role)</span>
+ <a href="@Url.Action("Logout","Account")">Log Out</a>
+ }
+ else
+ {
+ <a href="@Url.Action("Login","Account")">Log In</a>
+ }
+ </div>
+ </nav>
+
+ <main class="admin-main">
+ @RenderBody()
+ </main>
+</div>
+
+@RenderSection("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,238 @@
+/* Relies on the CSS variables defined in phila-auto.css (--asphalt, --blue, --ice, etc.) */
+
+.admin-shell{ min-height:100vh; display:flex; flex-direction:column; }
+
+.admin-nav{
+ display:flex; align-items:center; justify-content:space-between;
+ padding:18px 32px; border-bottom:1px solid rgba(255,255,255,0.08);
+ background:var(--oil);
+}
+.admin-nav .brand{
+ font-family:'Anton',sans-serif; font-size:18px; letter-spacing:0.5px; text-transform:uppercase;
+ text-decoration:none; color:var(--paper);
+}
+.admin-nav .brand span{ color:var(--blue); }
+.admin-nav .links{ display:flex; gap:22px; align-items:center; }
+.admin-nav .links a{
+ font-family:'Oswald',sans-serif; font-size:13px; letter-spacing:1px; text-transform:uppercase;
+ color:var(--steel); text-decoration:none; transition:color .2s;
+}
+.admin-nav .links a:hover, .admin-nav .links a.active{ color:var(--ice); }
+
+.admin-main{ flex:1; padding:36px 32px 60px; max-width:1320px; margin:0 auto; width:100%; }
+
+.page-head{ margin-bottom:30px; }
+.page-head h1{
+ font-family:'Anton',sans-serif; font-size:34px; text-transform:uppercase; letter-spacing:0.5px;
+}
+.page-head p{ color:var(--paper-dim); font-size:14px; margin-top:6px; }
+
+/* ---------- Kanban board ---------- */
+.board{
+ display:grid; grid-auto-flow:column; grid-auto-columns:270px;
+ gap:18px; overflow-x:auto; padding-bottom:20px;
+}
+.board-column{
+ background:var(--panel); border:1px solid rgba(255,255,255,0.06);
+ border-radius:6px; display:flex; flex-direction:column; min-height:200px;
+}
+.board-column-head{
+ padding:14px 16px; border-bottom:1px solid rgba(255,255,255,0.08);
+ font-family:'Oswald',sans-serif; font-size:12.5px; letter-spacing:1px;
+ text-transform:uppercase; color:var(--paper); display:flex; justify-content:space-between; align-items:center;
+}
+.board-column-head .count{
+ font-family:'Space Mono',monospace; font-size:11px; color:var(--steel);
+ background:var(--oil); padding:2px 8px; border-radius:20px;
+}
+.board-column-body{ padding:12px; display:flex; flex-direction:column; gap:10px; min-height:120px; }
+.board-column-body.drag-over{ background:rgba(47,111,237,0.08); }
+
+.job-card-mini{
+ background:var(--oil); border:1px solid rgba(255,255,255,0.07);
+ border-left:3px solid var(--blue);
+ border-radius:4px; padding:12px 14px; cursor:grab;
+ transition:transform .15s ease, box-shadow .15s ease;
+ text-decoration:none; color:var(--paper); display:block;
+}
+.job-card-mini:hover{ transform:translateY(-3px); box-shadow:0 10px 18px -10px rgba(0,0,0,0.6); border-color:var(--blue); }
+.job-card-mini.dragging{ opacity:0.4; }
+.job-card-mini .num{ font-family:'Space Mono',monospace; font-size:11px; color:var(--ice); }
+.job-card-mini h4{ font-family:'Oswald',sans-serif; font-size:15px; margin:4px 0 2px; text-transform:uppercase; }
+.job-card-mini .veh{ font-size:12px; color:var(--paper-dim); }
+.job-card-mini .meta{ font-family:'Space Mono',monospace; font-size:10.5px; color:var(--steel); margin-top:8px; }
+
+/* ---------- Forms (booking, tracker) ---------- */
+.form-card{
+ background:var(--panel); border:1px solid rgba(255,255,255,0.07);
+ border-radius:6px; padding:34px; max-width:640px;
+}
+.form-row{ margin-bottom:20px; }
+.form-row label{
+ display:block; font-family:'Oswald',sans-serif; font-size:12.5px; letter-spacing:1px;
+ text-transform:uppercase; color:var(--steel); margin-bottom:8px;
+}
+.form-row input, .form-row textarea, .form-row select{
+ width:100%; background:var(--oil); border:1px solid var(--steel-dim);
+ color:var(--paper); padding:12px 14px; font-family:'Inter',sans-serif; font-size:14px;
+ border-radius:4px;
+}
+.form-row input:focus, .form-row textarea:focus, .form-row select:focus{
+ outline:none; border-color:var(--blue);
+}
+.form-grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.field-validation-error{ color:#ff6b6b; font-size:12px; margin-top:6px; display:block; }
+.validation-summary-errors ul{ color:#ff6b6b; font-size:13px; padding-left:18px; }
+
+.submit-btn{
+ font-family:'Oswald',sans-serif; font-weight:600; font-size:14px; letter-spacing:1.5px;
+ text-transform:uppercase; background:var(--blue); color:var(--oil);
+ padding:15px 28px; border:none; cursor:pointer; border-radius:4px;
+ transition:background .2s;
+}
+.submit-btn:hover{ background:var(--ice); }
+
+/* ---------- Success banner ---------- */
+.alert-success{
+ display:flex; align-items:center; gap:12px;
+ background:rgba(125,211,252,0.1); border:1px solid var(--ice);
+ color:var(--ice); padding:14px 18px; border-radius:6px;
+ font-family:'Inter',sans-serif; font-size:14px; margin-bottom:24px;
+}
+.alert-success svg{ flex:0 0 20px; }
+
+/* ---------- Fancy role switch (login page) ---------- */
+.role-switch{
+ position:relative; display:flex; gap:4px;
+ background:var(--oil); border:1px solid var(--steel-dim);
+ border-radius:30px; padding:4px; margin-bottom:26px;
+}
+.role-switch-highlight{
+ position:absolute; top:4px; bottom:4px; left:4px; width:0;
+ background:var(--blue); border-radius:24px;
+ transition:transform .25s cubic-bezier(.4,0,.2,1), width .25s cubic-bezier(.4,0,.2,1);
+ z-index:0;
+}
+.role-option{
+ position:relative; z-index:1; flex:1; background:transparent; border:none;
+ color:var(--steel); font-family:'Oswald',sans-serif; font-size:12px;
+ letter-spacing:1px; text-transform:uppercase; padding:11px 0;
+ border-radius:24px; cursor:pointer; transition:color .25s ease;
+ white-space:nowrap;
+}
+.role-option.active{ color:var(--oil); font-weight:600; }
+.role-option:hover:not(.active){ color:var(--paper); }
+#roleLabelInBtn{ text-transform:capitalize; }
+@media (max-width:520px){
+ .role-switch{ flex-wrap:wrap; border-radius:14px; }
+ .role-switch-highlight{ display:none; }
+ .role-option{ flex:1 1 45%; border-radius:10px; }
+ .role-option.active{ background:var(--blue); }
+}
+
+/* ---------- Job Board toolbar (search + filter) ---------- */
+.board-toolbar{
+ display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+ margin-bottom:20px;
+}
+.board-search{
+ position:relative; flex:1; min-width:240px; max-width:420px;
+ display:flex; align-items:center;
+}
+.board-search svg{
+ position:absolute; left:14px; color:var(--steel); pointer-events:none;
+}
+.board-search input{
+ width:100%; background:var(--panel); border:1px solid var(--steel-dim);
+ color:var(--paper); padding:11px 14px 11px 40px; border-radius:24px;
+ font-family:'Inter',sans-serif; font-size:14px;
+}
+.board-search input:focus{ outline:none; border-color:var(--blue); }
+#mechanicFilter{
+ background:var(--panel); border:1px solid var(--steel-dim); color:var(--paper);
+ padding:11px 16px; border-radius:24px; font-family:'Inter',sans-serif; font-size:13px;
+}
+.board-no-results{ color:var(--steel); font-size:13px; font-family:'Space Mono',monospace; }
+
+/* ---------- Job card polish ---------- */
+.job-card-top{ display:flex; align-items:flex-start; gap:10px; margin-bottom:8px; }
+.job-avatar{
+ flex:0 0 32px; width:32px; height:32px; border-radius:50%;
+ background:var(--blue-dim); color:var(--paper);
+ display:flex; align-items:center; justify-content:center;
+ font-family:'Oswald',sans-serif; font-size:12px; font-weight:600; letter-spacing:0.5px;
+}
+.job-card-titles{ min-width:0; }
+.job-card-titles .num{ font-family:'Space Mono',monospace; font-size:10.5px; color:var(--ice); }
+.job-card-titles h4{
+ font-family:'Oswald',sans-serif; font-size:14px; margin:2px 0 0;
+ text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.job-card-footer{
+ display:flex; justify-content:space-between; align-items:center; gap:8px;
+ margin-top:10px; flex-wrap:wrap;
+}
+.mech-pill{
+ font-family:'Space Mono',monospace; font-size:10px; letter-spacing:0.5px;
+ padding:3px 9px; border-radius:20px; background:var(--oil); color:var(--paper-dim);
+ border:1px solid var(--steel-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px;
+}
+.mech-pill.unassigned{ color:#e0a942; border-color:#e0a942; }
+.price-pill{
+ font-family:'Space Mono',monospace; font-size:11px; color:var(--paper);
+}
+
+/* ---------- Status badges ---------- */
+.status-badge{
+ display:inline-block; font-family:'Space Mono',monospace; font-size:11px;
+ letter-spacing:1px; text-transform:uppercase; padding:4px 10px; border-radius:20px;
+ background:var(--steel-dim); color:var(--paper);
+}
+.status-Booked{ background:#33415c; }
+.status-DiagnosticsInProgress{ background:#3b5ba9; }
+.status-AwaitingApproval{ background:#a97a1d; }
+.status-InProgress{ background:var(--blue-dim); }
+.status-QualityCheck{ background:#2e7d7d; }
+.status-ReadyForPickup{ background:#2f9e5c; }
+.status-Completed{ background:#4a5058; }
+.status-Cancelled{ background:#7c2d2d; }
+
+/* ---------- Timeline (tracker) ---------- */
+.timeline{ display:flex; justify-content:space-between; margin:36px 0; position:relative; }
+.timeline::before{
+ content:""; position:absolute; top:11px; left:0; right:0; height:2px; background:var(--steel-dim); z-index:0;
+}
+.timeline-step{ position:relative; z-index:1; text-align:center; flex:1; }
+.timeline-dot{
+ width:24px; height:24px; border-radius:50%; background:var(--oil); border:2px solid var(--steel-dim);
+ margin:0 auto 8px; display:flex; align-items:center; justify-content:center;
+}
+.timeline-step.done .timeline-dot{ background:var(--blue); border-color:var(--blue); }
+.timeline-step.current .timeline-dot{ background:var(--ice); border-color:var(--ice); box-shadow:0 0 0 4px rgba(125,211,252,0.25); }
+.timeline-step .label{ font-family:'Space Mono',monospace; font-size:10px; text-transform:uppercase; color:var(--steel); max-width:90px; margin:0 auto; line-height:1.4; }
+.timeline-step.done .label, .timeline-step.current .label{ color:var(--paper); }
+@media (max-width:700px){ .timeline{ flex-direction:column; gap:18px; } .timeline::before{ display:none; } .timeline-step{ display:flex; align-items:center; gap:12px; text-align:left; } .timeline-dot{ margin:0; } }
+
+/* ---------- Printable job card ticket ---------- */
+.ticket-page{
+ background:var(--paper); color:var(--oil); max-width:680px; margin:0 auto;
+ padding:40px; font-family:'Space Mono',monospace; border-radius:4px;
+}
+.ticket-page .ticket-top{
+ display:flex; justify-content:space-between; align-items:flex-start;
+ border-bottom:2px dashed rgba(0,0,0,0.25); padding-bottom:18px; margin-bottom:24px;
+}
+.ticket-page .ticket-top h2{ font-family:'Anton',sans-serif; font-size:24px; text-transform:uppercase; }
+.ticket-page .job-number{ font-size:13px; color:#5a5650; }
+.ticket-grid{ display:grid; grid-template-columns:1fr 1fr; gap:18px 30px; margin-bottom:26px; }
+.ticket-field .k{ font-size:10px; letter-spacing:1px; text-transform:uppercase; color:#7a756c; }
+.ticket-field .v{ font-family:'Inter',sans-serif; font-size:15px; margin-top:3px; }
+.ticket-notes{ border-top:1px dashed rgba(0,0,0,0.25); padding-top:18px; font-family:'Inter',sans-serif; font-size:14px; line-height:1.6; }
+.print-btn{ margin:24px auto 0; display:block; }
+
+@media print{
+ .admin-nav, .no-print{ display:none !important; }
+ body{ background:#fff !important; }
+ .admin-main{ padding:0 !important; }
+ .ticket-page{ box-shadow:none; }
+}
