@@ -1,0 +1,91 @@
+﻿@{
+    ViewData["Title"] = "Enter Code";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="page-head">
+    <h1>Enter Your Code</h1>
+    <p>We texted a 6-digit code to the phone number on file. Enter it below along with your new password.</p>
+</div>
+
+<div class="form-card">
+    @if (ViewBag.Error != null)
+    {
+        <p style="color:#ff6b6b; margin-bottom:20px;">@ViewBag.Error</p>
+    }
+    @if (ViewBag.DebugOtp != null)
+    {
+        <div style="background:rgba(224,169,66,0.1); border:1px solid #e0a942; border-radius:6px; padding:14px 18px; margin-bottom:20px; text-align:center; font-family:'Space Mono',monospace;">
+            DEBUG ONLY - your code is: <strong style="font-size:18px; letter-spacing:3px;">@ViewBag.DebugOtp</strong>
+        </div>
+    }
+
+    <div id="countdownBox" style="background:var(--oil); border:1px solid var(--steel-dim); border-radius:6px; padding:14px 18px; margin-bottom:20px; text-align:center;">
+        <div style="font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--steel);">Code expires in</div>
+        <div id="countdownDisplay" style="font-family:'Anton',sans-serif; font-size:28px; color:var(--ice); margin-top:4px;">1:50</div>
+    </div>
+
+    @using (Html.BeginForm("VerifyOtp", "Account", FormMethod.Post))
+    {
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="email" value="@ViewBag.Email" />
+
+        <div class="form-row">
+            <label for="otpCode">6-digit code</label>
+            <input type="text" id="otpCode" name="otpCode" required="required" maxlength="6" pattern="\d{6}" inputmode="numeric" autofocus="autofocus" style="letter-spacing:6px; font-size:20px; text-align:center; font-family:'Space Mono',monospace;" />
+        </div>
+
+        <p style="color:var(--steel); font-size:12px; margin-bottom:16px; font-family:'Space Mono',monospace;">
+            New password requirements: at least 8 characters, uppercase, lowercase, a number, and a special character.
+        </p>
+
+        <div class="form-row">
+            <label for="newPassword">New password</label>
+            <div class="password-wrap">
+                <input type="password" id="newPassword" name="newPassword" required="required" minlength="8" />
+                <button type="button" class="password-toggle" data-target="newPassword">Show</button>
+            </div>
+        </div>
+        <div class="form-row">
+            <label for="confirmPassword">Confirm new password</label>
+            <input type="password" id="confirmPassword" name="confirmPassword" required="required" minlength="8" />
+        </div>
+
+        <button type="submit" class="submit-btn" id="submitBtn">Reset Password</button>
+    }
+
+    <p style="margin-top:20px; font-size:13px;">
+        <a href="@Url.Action("ForgotPassword","Account")" style="color:var(--ice);">Request a new code</a>
+    </p>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var expiryMillis = @ViewBag.ExpiryEpochMillis;
+            var display = document.getElementById("countdownDisplay");
+            var box = document.getElementById("countdownBox");
+            var submitBtn = document.getElementById("submitBtn");
+
+            function tick() {
+                var remainingMs = expiryMillis - Date.now();
+                if (remainingMs <= 0) {
+                    display.textContent = "Expired";
+                    box.style.borderColor = "#ff6b6b";
+                    display.style.color = "#ff6b6b";
+                    submitBtn.disabled = true;
+                    submitBtn.style.opacity = "0.5";
+                    clearInterval(timer);
+                    return;
+                }
+                var totalSeconds = Math.ceil(remainingMs / 1000);
+                var mins = Math.floor(totalSeconds / 60);
+                var secs = totalSeconds % 60;
+                display.textContent = mins + ":" + (secs < 10 ? "0" : "") + secs;
+            }
+
+            tick();
+            var timer = setInterval(tick, 1000);
+        })();
+    </script>
+}

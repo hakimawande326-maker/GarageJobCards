@@ -42,11 +42,6 @@
  @Html.ValidationMessageFor(m => m.ServiceRequested)
  </div>
 
- <div class="form-row">
- @Html.LabelFor(m => m.EstimateAmount)
- @Html.TextBoxFor(m => m.EstimateAmount, new { placeholder = "Leave blank until diagnosed" })
- </div>
-
  <button type="submit" class="submit-btn">Create Job Card</button>
  }
  }

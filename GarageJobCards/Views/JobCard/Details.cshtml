@@ -1,60 +1,84 @@
 @model GarageJobCards.Models.JobCard
 @{
- ViewData["Title"] = "Job Card " + Model.JobNumber;
- Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Job Card " + Model.JobNumber;
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
 
 <div class="page-head no-print">
- <h1>Job Card</h1>
- <p>Printable digital work order - hand a copy to the tech or the customer.</p>
+    <h1>Job Card</h1>
+    <p>Printable digital work order - hand a copy to the tech or the customer.</p>
 </div>
 
+@if (TempData["Success"] != null)
+{
+    <div class="alert-success no-print">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span>@TempData["Success"]</span>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <p class="no-print" style="color:#ff6b6b; margin-bottom:20px;">@TempData["Error"]</p>
+}
+
 <div class="ticket-page">
- <div class="ticket-top">
- <div>
- <h2>Phila's Auto Repair Shop</h2>
- <div class="job-number">Umlazi J Section, Durban</div>
- </div>
- <div style="text-align:right;">
- <div class="job-number">@Model.JobNumber</div>
- <span class="status-badge status-@Model.Status">@GarageJobCards.Models.JobCard.StatusLabel(Model.Status)</span>
- </div>
- </div>
+    <div class="ticket-top">
+        <div>
+            <h2>Phila's Auto Repair Shop</h2>
+            <div class="job-number">Umlazi J Section, Durban</div>
+        </div>
+        <div style="text-align:right;">
+            <div class="job-number">@Model.JobNumber</div>
+            <span class="status-badge status-@Model.Status">@GarageJobCards.Models.JobCard.StatusLabel(Model.Status)</span>
+        </div>
+    </div>
 
- <div class="ticket-grid">
- <div class="ticket-field"><div class="k">Customer</div><div class="v">@Model.Customer.FullName</div></div>
- <div class="ticket-field"><div class="k">Phone</div><div class="v">@Model.Customer.Phone</div></div>
- <div class="ticket-field"><div class="k">Vehicle</div><div class="v">@Model.Vehicle.Make @Model.Vehicle.Model</div></div>
- <div class="ticket-field"><div class="k">Plate</div><div class="v">@Model.Vehicle.PlateNumber</div></div>
- <div class="ticket-field"><div class="k">Mileage</div><div class="v">@(Model.Vehicle.Mileage.HasValue ? Model.Vehicle.Mileage.Value.ToString("N0") + " km" : " - ")</div></div>
- <div class="ticket-field"><div class="k">Technician</div><div class="v">@(Model.AssignedMechanic != null ? Model.AssignedMechanic.FullName : "Unassigned")</div></div>
- <div class="ticket-field"><div class="k">Quoted amount</div><div class="v">@(Model.EstimateAmount.HasValue ? "R" + Model.EstimateAmount.Value.ToString("N0") : "Pending diagnosis")</div></div>
- <div class="ticket-field"><div class="k">Time estimate</div><div class="v">@(Model.EstimatedHours.HasValue ? Model.EstimatedHours.Value + " hours" : "Not yet estimated")</div></div>
- @if (Model.EstimatedCompletionUtc.HasValue)
- {
- <div class="ticket-field"><div class="k">Estimated completion</div><div class="v">@Model.EstimatedCompletionUtc.Value.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</div></div>
- }
- <div class="ticket-field"><div class="k">Booked</div><div class="v">@Model.DateBookedUtc.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</div></div>
- <div class="ticket-field"><div class="k">Booked by</div><div class="v">@Model.CreatedByUser.FullName</div></div>
- </div>
+    <div class="ticket-grid">
+        <div class="ticket-field"><div class="k">Customer</div><div class="v">@Model.Customer.FullName</div></div>
+        <div class="ticket-field"><div class="k">Phone</div><div class="v">@Model.Customer.Phone</div></div>
+        <div class="ticket-field"><div class="k">Vehicle</div><div class="v">@Model.Vehicle.Make @Model.Vehicle.Model</div></div>
+        <div class="ticket-field"><div class="k">Plate</div><div class="v">@Model.Vehicle.PlateNumber</div></div>
+        <div class="ticket-field"><div class="k">Mileage</div><div class="v">@(Model.Vehicle.Mileage.HasValue ? Model.Vehicle.Mileage.Value.ToString("N0") + " km" : "-")</div></div>
+        <div class="ticket-field"><div class="k">Technician</div><div class="v">@(Model.AssignedMechanic != null ? Model.AssignedMechanic.FullName : "Unassigned")</div></div>
+        <div class="ticket-field"><div class="k">Quoted amount</div><div class="v">@(Model.EstimateAmount.HasValue ? "R" + Model.EstimateAmount.Value.ToString("N2") + " (excl. VAT)" : "Pending diagnosis")</div></div>
+        <div class="ticket-field"><div class="k">Booked</div><div class="v">@Model.DateBookedUtc.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</div></div>
+        <div class="ticket-field"><div class="k">Booked by</div><div class="v">@Model.CreatedByUser.FullName</div></div>
+    </div>
 
- <div class="ticket-notes">
- <div class="k" style="font-size:10px; letter-spacing:1px; text-transform:uppercase; color:#7a756c; margin-bottom:8px;">Service Requested</div>
- <p>@Model.ServiceRequested</p>
+    <div class="ticket-notes">
+        <div class="k" style="font-size:10px; letter-spacing:1px; text-transform:uppercase; color:#7a756c; margin-bottom:8px;">Service Requested</div>
+        <p>@Model.ServiceRequested</p>
 
- @if (!string.IsNullOrEmpty(Model.Notes))
- {
- <div class="k" style="font-size:10px; letter-spacing:1px; text-transform:uppercase; color:#7a756c; margin:16px 0 8px;">Internal Notes</div>
- <p>@Model.Notes</p>
- }
+        @if (!string.IsNullOrEmpty(Model.Notes))
+        {
+            <div class="k" style="font-size:10px; letter-spacing:1px; text-transform:uppercase; color:#7a756c; margin:16px 0 8px;">Internal Notes</div>
+            <p>@Model.Notes</p>
+        }
 
- @if (Model.CustomerApproved)
- {
- <p style="margin-top:16px; color:#2e7d32;">
- Customer approved @Model.ApprovedAtUtc.Value.ToLocalTime().ToString("dd MMM, HH:mm")
- </p>
- }
- </div>
+        @if (Model.ManagerSignedByUserId != null)
+        {
+            <p style="margin-top:16px; color:#2e7d32;">
+                Signed off by @Model.ManagerSignedBy.FullName on @Model.SignedAtUtc.Value.ToLocalTime().ToString("dd MMM, HH:mm")
+            </p>
+        }
+    </div>
 </div>
 
 <button onclick="window.print()" class="submit-btn print-btn no-print">Print Job Card</button>
+
+@if (Session["UserRole"] != null && Session["UserRole"].ToString() == "Manager" && Model.ManagerSignedByUserId == null)
+{
+    using (Html.BeginForm("SignAndRelease", "JobCard", new { id = Model.Id }, FormMethod.Post, new { @class = "no-print", style = "display:inline-block; margin-left:12px;" }))
+    {
+        @Html.AntiForgeryToken()
+        <button type="submit" class="submit-btn" style="background:var(--ice);">Sign &amp; Release for Pickup</button>
+    }
+}
+
+@if (Model.ManagerSignedByUserId != null)
+{
+    <div class="no-print" style="background:rgba(125,211,252,0.1); border:1px solid var(--ice); border-radius:6px; padding:18px; margin-top:20px; display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
+        <span style="color:var(--ice); font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:0.5px;">Signed off - quotation ready (R@Model.TotalInclVat.ToString("N2"))</span>
+        <a href="@Url.Action("Quotation", new { id = Model.Id })" class="submit-btn" style="text-decoration:none; display:inline-block; background:var(--ice);">View Quotation</a>
+    </div>
+}

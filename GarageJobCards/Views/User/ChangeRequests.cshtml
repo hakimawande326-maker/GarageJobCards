@@ -1,0 +1,55 @@
+@model IEnumerable<GarageJobCards.Models.UserChangeRequest>
+@using System.Linq
+@{
+    ViewData["Title"] = "Change Requests";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="page-head">
+    <h1>Change Requests</h1>
+    <p>Name/email changes a Receptionist submitted for a customer, waiting on your approval.</p>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert-success">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span>@TempData["Success"]</span>
+    </div>
+}
+
+@if (!Model.Any())
+{
+    <p style="color:var(--paper-dim);">No pending change requests.</p>
+}
+
+<div style="display:flex; flex-direction:column; gap:14px;">
+    @foreach (var r in Model)
+    {
+        <div class="form-card" style="max-width:none;">
+            <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; align-items:center;">
+                <div>
+                    <div style="font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:15px;">@r.TargetUser.FullName</div>
+                    <div style="color:var(--paper-dim); font-size:13px; margin-top:4px;">
+                        Change <strong>@r.FieldName</strong> from "@r.OldValue" to "@r.NewValue"
+                    </div>
+                    <div style="color:var(--steel); font-size:12px; font-family:'Space Mono',monospace; margin-top:6px;">
+                        Requested by @r.RequestedBy.FullName on @r.RequestedAtUtc.ToLocalTime().ToString("dd MMM yyyy, HH:mm")
+                    </div>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    @using (Html.BeginForm("ApproveChangeRequest", "User", new { id = r.Id }, FormMethod.Post, new { style = "display:inline-block;" }))
+                    {
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="submit-btn" style="background:#4caf50; padding:10px 20px; font-size:12px;">Approve</button>
+                    }
+                    @using (Html.BeginForm("RejectChangeRequest", "User", new { id = r.Id }, FormMethod.Post, new { style = "display:inline-block;" }))
+                    {
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn-ghost" style="padding:10px 20px; font-size:12px; color:#ff6b6b; border-color:#ff6b6b;">Reject</button>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>

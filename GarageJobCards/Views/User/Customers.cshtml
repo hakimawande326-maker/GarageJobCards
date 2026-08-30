@@ -1,0 +1,85 @@
+@model IEnumerable<GarageJobCards.Models.User>
+@{
+    ViewData["Title"] = "Customers";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="page-head" style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px;">
+    <div>
+        <h1>Customers</h1>
+        <p>@Model.Count() registered customer(s).</p>
+    </div>
+    <a href="@Url.Action("Register","User")" class="submit-btn" style="text-decoration:none; display:inline-block;">+ Register Customer</a>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert-success">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span>@TempData["Success"]</span>
+    </div>
+}
+
+<div class="board-toolbar">
+    <div class="board-search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="customerSearch" placeholder="Search by name, email, or phone..." autocomplete="off" />
+    </div>
+</div>
+
+<div class="form-card" style="max-width:none; padding:0; overflow:hidden;">
+    <table style="width:100%; border-collapse:collapse;">
+        <thead>
+            <tr style="text-align:left; font-family:'Oswald',sans-serif; font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--steel); border-bottom:1px solid var(--steel-dim);">
+                <th style="padding:14px 18px;">Name</th>
+                <th style="padding:14px 18px;">Email</th>
+                <th style="padding:14px 18px;">Phone</th>
+                <th style="padding:14px 18px;">City</th>
+                <th style="padding:14px 18px;">Status</th>
+                <th style="padding:14px 18px;"></th>
+            </tr>
+        </thead>
+        <tbody id="customerRows">
+            @foreach (var c in Model)
+            {
+                var searchBlob = (c.FullName + " " + c.Email + " " + c.Phone).ToLower();
+                <tr class="customer-row" data-search="@searchBlob" style="border-bottom:1px solid rgba(255,255,255,0.06); font-family:'Inter',sans-serif; font-size:14px;">
+                    <td style="padding:12px 18px;">@c.FullName</td>
+                    <td style="padding:12px 18px; color:var(--paper-dim);">@c.Email</td>
+                    <td style="padding:12px 18px; color:var(--paper-dim);">@c.Phone</td>
+                    <td style="padding:12px 18px; color:var(--paper-dim);">@c.City</td>
+                    <td style="padding:12px 18px;">
+                        @if (c.IsActive)
+                        {
+                            <span style="color:#4caf50; font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase;">Active</span>
+                        }
+                        else
+                        {
+                            <span style="color:#ff6b6b; font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase;">Deactivated</span>
+                        }
+                    </td>
+                    <td style="padding:12px 18px; text-align:right; white-space:nowrap;">
+                        <a href="@Url.Action("EditCustomer", new { id = c.Id })" class="btn-ghost" style="text-decoration:none; padding:8px 14px; font-size:12px;">Edit</a>
+                        @using (Html.BeginForm("DeleteCustomer", "User", new { id = c.Id }, FormMethod.Post, new { style = "display:inline-block; margin-left:6px;", onsubmit = "return confirm('Remove ' + '" + c.FullName.Replace("'", "") + "'" + "? If they have vehicles or job history, they will be deactivated instead of deleted.');" }))
+                        {
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn-ghost" style="padding:8px 14px; font-size:12px; color:#ff6b6b; border-color:#ff6b6b;">Remove</button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById("customerSearch").addEventListener("input", function () {
+            var query = this.value.trim().toLowerCase();
+            document.querySelectorAll(".customer-row").forEach(function (row) {
+                var show = !query || row.getAttribute("data-search").indexOf(query) !== -1;
+                row.style.display = show ? "" : "none";
+            });
+        });
+    </script>
+}
