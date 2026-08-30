@@ -1,0 +1,85 @@
+@model GarageJobCards.Models.User
+@{
+    ViewData["Title"] = "Edit Staff";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="page-head">
+    <h1>Edit Staff</h1>
+    <p>@Model.FullName - @Model.Role</p>
+</div>
+
+<div class="form-card">
+    @if (TempData["Error"] != null)
+    {
+        <p style="color:#ff6b6b; margin-bottom:20px;">@TempData["Error"]</p>
+    }
+
+    @using (Html.BeginForm("EditStaff", "User", new { id = Model.Id }, FormMethod.Post))
+    {
+        @Html.AntiForgeryToken()
+
+        <div class="form-row">
+            <label for="fullName">Full name</label>
+            <input type="text" name="fullName" id="fullName" value="@Model.FullName" required="required" maxlength="80" pattern="[a-zA-Z\s'\-]+" />
+            <span style="color:var(--steel); font-size:11px; font-family:'Space Mono',monospace; display:block; margin-top:6px;">
+                Letters, spaces, hyphens, and apostrophes only.
+            </span>
+        </div>
+
+        <div class="form-row">
+            <label for="email">Email</label>
+            <input type="email" name="email" id="email" value="@Model.Email" required="required" placeholder="name@gmail.com" />
+            <span style="color:var(--steel); font-size:11px; font-family:'Space Mono',monospace; display:block; margin-top:6px;">
+                Must be a Gmail address (ending in @@gmail.com).
+            </span>
+        </div>
+
+        <div class="form-row">
+            <label for="phone">Phone</label>
+            <input type="tel" name="phone" id="phone" value="@Model.Phone" required="required" pattern="\d{10}" maxlength="10" placeholder="0721234567" />
+            <span style="color:var(--steel); font-size:11px; font-family:'Space Mono',monospace; display:block; margin-top:6px;">
+                Exactly 10 digits.
+            </span>
+        </div>
+
+        <div class="form-row">
+            <label for="role">Role</label>
+            <select name="role" id="role">
+                @{
+                    var mechSelected = Model.Role == GarageJobCards.Models.UserRole.Mechanic ? "selected=\"selected\"" : "";
+                    var recSelected = Model.Role == GarageJobCards.Models.UserRole.Receptionist ? "selected=\"selected\"" : "";
+                }
+                @Html.Raw("<option value=\"Mechanic\" " + mechSelected + ">Mechanic</option>")
+                @Html.Raw("<option value=\"Receptionist\" " + recSelected + ">Receptionist</option>")
+            </select>
+        </div>
+
+        <button type="submit" class="submit-btn">Save Changes</button>
+    }
+
+    <a href="@Url.Action("ManageAccounts","User")" style="color:var(--ice); font-size:13px; display:block; margin-top:20px;">Back to Manage Accounts</a>
+</div>
+
+<div class="form-card" style="margin-top:20px;">
+    <h3 style="font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:15px; margin-bottom:6px;">Reset Password</h3>
+    <p style="color:var(--paper-dim); font-size:13px; margin-bottom:16px;">
+        No email needed - set a new password directly and tell them what it is.
+    </p>
+
+    @using (Html.BeginForm("ResetStaffPassword", "User", new { id = Model.Id }, FormMethod.Post))
+    {
+        @Html.AntiForgeryToken()
+        <div class="form-row">
+            <label for="newPassword">New password</label>
+            <div class="password-wrap">
+                <input type="password" name="newPassword" id="newPassword" required="required" minlength="8" />
+                <button type="button" class="password-toggle" data-target="newPassword">Show</button>
+            </div>
+            <span style="color:var(--steel); font-size:11px; font-family:'Space Mono',monospace; display:block; margin-top:6px;">
+                At least 8 characters, with uppercase, lowercase, a number, and a special character.
+            </span>
+        </div>
+        <button type="submit" class="btn-ghost">Reset Password</button>
+    }
+</div>

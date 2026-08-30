@@ -1,41 +1,51 @@
 using System;
 using System.Configuration;
-using System.Net;
-using System.Net.Mail;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
 
 namespace GarageJobCards.Infrastructure
 {
-    public static class EmailHelper
+    public static class SmsHelper
     {
-        // Reads SMTP host/port/credentials from Web.config's <system.net><mailSettings>
-        // section automatically — no code changes needed when you plug in real
-        // provider details, just edit Web.config.
-        public static void SendPasswordResetEmail(string toEmail, string resetLink)
+        public static void SendSms(string toPhoneLocal, string message)
         {
-            var fromAddress = ConfigurationManager.AppSettings["SmtpFromAddress"];
-            var fromName = ConfigurationManager.AppSettings["SmtpFromName"];
+            var tokenId = ConfigurationManager.AppSettings["BulkSmsTokenId"];
+            var tokenSecret = ConfigurationManager.AppSettings["BulkSmsTokenSecret"];
 
-            if (string.IsNullOrEmpty(fromAddress))
-                fromAddress = "noreply@philasauto.co.za";
-            if (string.IsNullOrEmpty(fromName))
-                fromName = "Phila's Auto Repair Shop";
+            if (string.IsNullOrEmpty(tokenId) || string.IsNullOrEmpty(tokenSecret))
+                throw new InvalidOperationException("BulkSMS settings are missing from Web.config.");
 
-            var message = new MailMessage
+            var toE164 = ToE164SouthAfrica(toPhoneLocal);
+
+            using (var client = new HttpClient())
             {
-                From = new MailAddress(fromAddress, fromName),
-                Subject = "Reset your password - Phila's Auto Repair Shop",
-                IsBodyHtml = true,
-                Body =
-                    "<p>We received a request to reset your password.</p>" +
-                    "<p><a href=\"" + resetLink + "\">Click here to set a new password</a></p>" +
-                    "<p>This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>"
-            };
-            message.To.Add(toEmail);
+                var authBytes = Encoding.ASCII.GetBytes(tokenId + ":" + tokenSecret);
+                client.DefaultRequestHeaders.Authorization =
+                    new AuthenticationHeaderValue("Basic", Convert.ToBase64String(authBytes));
 
-            using (var client = new SmtpClient())
-            {
-                client.Send(message);
+                var json = "[{\"to\":\"" + toE164 + "\",\"body\":\"" + EscapeJson(message) + "\"}]";
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = client.PostAsync("https://api.bulksms.com/v1/messages", content).GetAwaiter().GetResult();
+                var responseText = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+
+                if (!response.IsSuccessStatusCode)
+                    throw new Exception("BulkSMS failed (" + response.StatusCode + "): " + responseText);
             }
+        }
+
+        private static string ToE164SouthAfrica(string localNumber)
+        {
+            var digits = localNumber.Trim();
+            if (digits.StartsWith("0"))
+                digits = digits.Substring(1);
+            return "+27" + digits;
+        }
+
+        private static string EscapeJson(string text)
+        {
+            return text.Replace("\\", "\\\\").Replace("\"", "\\\"");
         }
     }
 }

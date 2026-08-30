@@ -1,0 +1,113 @@
+@model GarageJobCards.Models.User
+@using System.Linq
+@{
+    ViewData["Title"] = "Edit Customer";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    bool isManager = ViewBag.IsManager == true;
+    bool hasHistory = ViewBag.HasHistory == true;
+    var pending = ViewBag.PendingRequests as System.Collections.Generic.List<GarageJobCards.Models.UserChangeRequest>;
+}
+
+<div class="page-head" style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px;">
+    <div>
+        <h1>Edit Customer</h1>
+        <p>@Model.FullName</p>
+    </div>
+    <div>
+        @using (Html.BeginForm("DeleteCustomer", "User", new { id = Model.Id }, FormMethod.Post, new { onsubmit = "return confirm('Remove this customer? " + (hasHistory ? "They have vehicle/job history, so they will be deactivated instead of deleted." : "This will permanently delete them - they have no history yet.") + "');" }))
+        {
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn-ghost" style="color:#ff6b6b; border-color:#ff6b6b;">Remove Customer</button>
+        }
+    </div>
+</div>
+
+<div class="form-card">
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert-success">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
+            <span>@TempData["Success"]</span>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <p style="color:#ff6b6b; margin-bottom:20px;">@TempData["Error"]</p>
+    }
+
+    @if (pending != null && pending.Any())
+    {
+        <div style="background:rgba(224,169,66,0.1); border:1px solid #e0a942; border-radius:6px; padding:14px 18px; margin-bottom:20px; color:#e0a942; font-size:13px;">
+            @foreach (var r in pending)
+            {
+                <div>Pending: change @r.FieldName to "@r.NewValue" - awaiting Manager approval.</div>
+            }
+        </div>
+    }
+
+    @using (Html.BeginForm("EditCustomer", "User", new { id = Model.Id }, FormMethod.Post))
+    {
+        @Html.AntiForgeryToken()
+
+        <div class="form-grid-2">
+            <div class="form-row">
+                <label for="fullName">Full name @(!isManager ? "(needs Manager approval to change)" : "")</label>
+                <input type="text" name="fullName" id="fullName" value="@Model.FullName" maxlength="80" pattern="[a-zA-Z\s'\-]+" />
+            </div>
+            <div class="form-row">
+                <label for="email">Email @(!isManager ? "(needs Manager approval to change)" : "")</label>
+                <input type="email" name="email" id="email" value="@Model.Email" />
+                <span style="color:var(--steel); font-size:11px; font-family:'Space Mono',monospace; display:block; margin-top:6px;">
+                    Must be a Gmail address (ending in @@gmail.com).
+                </span>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <label for="phone">Phone</label>
+            <input type="tel" name="phone" id="phone" value="@Model.Phone" maxlength="10" pattern="\d{10}" placeholder="0721234567" />
+            <span style="color:var(--steel); font-size:11px; font-family:'Space Mono',monospace; display:block; margin-top:6px;">Exactly 10 digits.</span>
+        </div>
+
+        <div class="form-row">
+            <label for="address">Street address</label>
+            <input type="text" name="address" id="address" value="@Model.Address" />
+        </div>
+
+        <div class="form-grid-2">
+            <div class="form-row">
+                <label for="city">City / Township</label>
+                <input type="text" name="city" id="city" value="@Model.City" />
+            </div>
+            <div class="form-row">
+                <label for="postalCode">Postal code</label>
+                <input type="text" name="postalCode" id="postalCode" value="@Model.PostalCode" maxlength="4" pattern="\d{4}" placeholder="4066" />
+            </div>
+        </div>
+
+        <button type="submit" class="submit-btn">Save Changes</button>
+    }
+</div>
+
+<div class="form-card" style="margin-top:20px;">
+    <h3 style="font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:15px; margin-bottom:6px;">Reset Password</h3>
+    <p style="color:var(--paper-dim); font-size:13px; margin-bottom:16px;">
+        No email needed - set a new password directly and tell the customer what it is.
+    </p>
+
+    @using (Html.BeginForm("ResetCustomerPassword", "User", new { id = Model.Id }, FormMethod.Post))
+    {
+        @Html.AntiForgeryToken()
+        <div class="form-row">
+            <label for="newPassword">New password</label>
+            <div class="password-wrap">
+                <input type="password" name="newPassword" id="newPassword" required="required" minlength="8" />
+                <button type="button" class="password-toggle" data-target="newPassword">Show</button>
+            </div>
+            <span style="color:var(--steel); font-size:11px; font-family:'Space Mono',monospace; display:block; margin-top:6px;">
+                At least 8 characters, with uppercase, lowercase, a number, and a special character.
+            </span>
+        </div>
+        <button type="submit" class="btn-ghost">Reset Password</button>
+    }
+</div>

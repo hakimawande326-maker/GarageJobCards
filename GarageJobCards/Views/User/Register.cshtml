@@ -1,66 +1,96 @@
 @model GarageJobCards.Models.User
 @{
- ViewData["Title"] = "Register User";
- Layout = "~/Views/Shared/_AdminLayout.cshtml";
- bool canChooseRole = ViewBag.CanChooseRole == true;
+    ViewData["Title"] = "Register User";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    bool isManager = ViewBag.IsManager == true;
 }
 
 <div class="page-head">
- <h1>@(canChooseRole ? "Register a User" : "Register a Customer")</h1>
- <p>@(canChooseRole ? "Managers can create accounts for any role." : "New customers get an account so they can track their own bookings.")</p>
+    <h1>@(isManager ? "Register a User" : "Register a Customer or Mechanic")</h1>
+    <p>@(isManager ? "Managers can create accounts for any role." : "Register a new customer, or a mechanic joining the shop.")</p>
 </div>
 
 <div class="form-card">
- @if (TempData["Success"] != null)
- {
- <div class="alert-success">
- <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
- <span>@TempData["Success"]</span>
- </div>
- }
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert-success">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
+            <span>@TempData["Success"]</span>
+        </div>
+    }
 
- @using (Html.BeginForm("Register", "User", FormMethod.Post))
- {
- @Html.AntiForgeryToken()
- @Html.ValidationSummary(true, "", new { @class = "validation-summary-errors" })
+    @using (Html.BeginForm("Register", "User", FormMethod.Post))
+    {
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary(true, "", new { @class = "validation-summary-errors" })
 
- <div class="form-grid-2">
- <div class="form-row">
- @Html.LabelFor(m => m.FullName)
- @Html.TextBoxFor(m => m.FullName)
- @Html.ValidationMessageFor(m => m.FullName)
- </div>
- <div class="form-row">
- @Html.LabelFor(m => m.Phone)
- @Html.TextBoxFor(m => m.Phone, new { placeholder = "e.g. 0721234567" })
- </div>
- </div>
+        <div class="form-grid-2">
+            <div class="form-row">
+                @Html.LabelFor(m => m.FullName)
+                @Html.TextBoxFor(m => m.FullName)
+                @Html.ValidationMessageFor(m => m.FullName)
+            </div>
+            <div class="form-row">
+                @Html.LabelFor(m => m.Phone)
+                @Html.TextBoxFor(m => m.Phone, new { type = "tel", placeholder = "0721234567", maxlength = 10, pattern = @"\d{10}" })
+                @Html.ValidationMessageFor(m => m.Phone)
+                <span style="color:var(--steel); font-size:11px; font-family:'Space Mono',monospace; display:block; margin-top:6px;">Exactly 10 digits.</span>
+            </div>
+        </div>
 
- <div class="form-row">
- @Html.LabelFor(m => m.Email)
- @Html.TextBoxFor(m => m.Email)
- @Html.ValidationMessageFor(m => m.Email)
- </div>
+        <div class="form-row">
+            @Html.LabelFor(m => m.Email)
+            @Html.TextBoxFor(m => m.Email, new { type = "email", placeholder = "name@gmail.com" })
+            @Html.ValidationMessageFor(m => m.Email)
+            <span style="color:var(--steel); font-size:11px; font-family:'Space Mono',monospace; display:block; margin-top:6px;">
+                Must be a Gmail address (ending in @@gmail.com).
+            </span>
+        </div>
 
- <div class="form-row">
- @Html.LabelFor(m => m.Password)
- @Html.PasswordFor(m => m.Password)
- @Html.ValidationMessageFor(m => m.Password)
- </div>
+        <div class="form-row">
+            @Html.LabelFor(m => m.Address)
+            @Html.TextBoxFor(m => m.Address, new { placeholder = "Street address" })
+            @Html.ValidationMessageFor(m => m.Address)
+        </div>
 
- if (canChooseRole)
- {
- <div class="form-row">
- <label for="Role">Role</label>
- <select name="Role" id="Role">
- <option value="Customer">Customer</option>
- <option value="Receptionist">Receptionist</option>
- <option value="Manager">Manager</option>
- <option value="Mechanic">Mechanic</option>
- </select>
- </div>
- }
+        <div class="form-grid-2">
+            <div class="form-row">
+                @Html.LabelFor(m => m.City)
+                @Html.TextBoxFor(m => m.City)
+                @Html.ValidationMessageFor(m => m.City)
+            </div>
+            <div class="form-row">
+                @Html.LabelFor(m => m.PostalCode)
+                @Html.TextBoxFor(m => m.PostalCode, new { maxlength = 4, pattern = @"\d{4}", placeholder = "4066" })
+                @Html.ValidationMessageFor(m => m.PostalCode)
+            </div>
+        </div>
 
- <button type="submit" class="submit-btn">Register</button>
- }
+        <div class="form-row">
+            @Html.LabelFor(m => m.Password)
+            <div class="password-wrap">
+                @Html.PasswordFor(m => m.Password)
+                <button type="button" class="password-toggle" data-target="Password">Show</button>
+            </div>
+            @Html.ValidationMessageFor(m => m.Password)
+            <span style="color:var(--steel); font-size:11px; font-family:'Space Mono',monospace; display:block; margin-top:6px;">
+                At least 8 characters, with uppercase, lowercase, a number, and a special character.
+            </span>
+        </div>
+
+        <div class="form-row">
+            <label for="Role">Role</label>
+            <select name="Role" id="Role">
+                <option value="Customer">Customer</option>
+                <option value="Mechanic">Mechanic</option>
+                @if (isManager)
+                {
+                    <option value="Receptionist">Receptionist</option>
+                    <option value="Manager">Manager</option>
+                }
+            </select>
+        </div>
+
+        <button type="submit" class="submit-btn">Register</button>
+    }
 </div>

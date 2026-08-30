@@ -1,64 +1,151 @@
 @model GarageJobCards.Models.AnalyticsViewModel
 @using System.Linq
 @{
- ViewData["Title"] = "Business Analytics";
- Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Analytics";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
+    var statusLabels = string.Join(",", Model.StatusBreakdown.Select(s => "\"" + GarageJobCards.Models.JobCard.StatusLabel(s.Status) + "\""));
+    var statusCounts = string.Join(",", Model.StatusBreakdown.Select(s => s.Count));
+
+    var mechNames = string.Join(",", Model.MechanicPerformance.Select(m => "\"" + m.Name.Replace("\"", "") + "\""));
+    var mechActive = string.Join(",", Model.MechanicPerformance.Select(m => m.ActiveCount));
+    var mechCompleted = string.Join(",", Model.MechanicPerformance.Select(m => m.CompletedCount));
 }
 
 <div class="page-head">
- <h1>Business Analytics</h1>
- <p>Live numbers across every job card, mechanic, and customer.</p>
+    <h1>Analytics</h1>
+    <p>Live numbers pulled straight from the job board.</p>
 </div>
 
-<div class="stats" style="background:var(--panel); border:1px solid rgba(255,255,255,0.06); border-radius:8px; margin-bottom:36px;">
- <div class="stats-grid" style="max-width:none; padding:32px;">
- <div class="stat"><div class="num">@Model.TotalJobs</div><div class="label">Total Jobs (All Time)</div></div>
- <div class="stat"><div class="num">@Model.ActiveJobs</div><div class="label">Active Right Now</div></div>
- <div class="stat"><div class="num">@Model.CompletedJobs</div><div class="label">Completed</div></div>
- <div class="stat"><div class="num">R@(Model.TotalRevenue.ToString("N0"))</div><div class="label">Total Revenue</div></div>
- </div>
+<div class="stats-grid-admin">
+    <div class="stat-card-admin">
+        <div class="stat-card-value">@Model.TotalJobs</div>
+        <div class="stat-card-label">Total Jobs</div>
+    </div>
+    <div class="stat-card-admin">
+        <div class="stat-card-value">@Model.ActiveJobs</div>
+        <div class="stat-card-label">Active Jobs</div>
+    </div>
+    <div class="stat-card-admin">
+        <div class="stat-card-value">@Model.CompletedJobs</div>
+        <div class="stat-card-label">Completed</div>
+    </div>
+    <div class="stat-card-admin">
+        <div class="stat-card-value">R@(Model.TotalRevenue.ToString("N0"))</div>
+        <div class="stat-card-label">Revenue (Completed)</div>
+    </div>
+    <div class="stat-card-admin">
+        <div class="stat-card-value">@Model.AvgTurnaroundHours.ToString("N1")h</div>
+        <div class="stat-card-label">Avg Turnaround</div>
+    </div>
+    <div class="stat-card-admin">
+        <div class="stat-card-value">@Model.TotalCustomers</div>
+        <div class="stat-card-label">Customers</div>
+    </div>
+    <div class="stat-card-admin">
+        <div class="stat-card-value">@Model.TotalVehicles</div>
+        <div class="stat-card-label">Vehicles</div>
+    </div>
+    <div class="stat-card-admin">
+        <div class="stat-card-value">@Model.TotalMechanics</div>
+        <div class="stat-card-label">Mechanics</div>
+    </div>
 </div>
 
-<div class="stats" style="background:var(--panel); border:1px solid rgba(255,255,255,0.06); border-radius:8px; margin-bottom:36px;">
- <div class="stats-grid" style="max-width:none; padding:32px;">
- <div class="stat"><div class="num">@(Model.AvgTurnaroundHours.ToString("N1"))h</div><div class="label">Avg. Turnaround</div></div>
- <div class="stat"><div class="num">@Model.TotalCustomers</div><div class="label">Registered Customers</div></div>
- <div class="stat"><div class="num">@Model.TotalVehicles</div><div class="label">Registered Vehicles</div></div>
- <div class="stat"><div class="num">@Model.TotalMechanics</div><div class="label">Mechanics on Staff</div></div>
- </div>
+<div class="charts-grid">
+    <div class="form-card chart-card">
+        <h3 class="chart-title">Jobs by Status</h3>
+        <canvas id="statusChart"></canvas>
+    </div>
+
+    <div class="form-card chart-card">
+        <h3 class="chart-title">Job Outcomes</h3>
+        <canvas id="outcomeChart"></canvas>
+    </div>
+
+    <div class="form-card chart-card chart-card-wide">
+        <h3 class="chart-title">Mechanic Workload</h3>
+        @if (Model.MechanicPerformance.Any())
+        {
+            <canvas id="mechanicChart"></canvas>
+        }
+        else
+        {
+            <p style="color:var(--paper-dim); font-size:14px;">No mechanics registered yet.</p>
+        }
+    </div>
 </div>
 
-<div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
- <div class="form-card" style="max-width:none;">
- <h3 style="font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:16px; margin-bottom:18px; color:var(--steel);">Jobs by Status</h3>
- @foreach (var s in Model.StatusBreakdown)
- {
- <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.06);">
- <span class="status-badge status-@s.Status">@GarageJobCards.Models.JobCard.StatusLabel(s.Status)</span>
- <span style="font-family:'Space Mono',monospace; color:var(--paper);">@s.Count</span>
- </div>
- }
- @if (!Model.StatusBreakdown.Any())
- {
- <p style="color:var(--paper-dim); font-size:14px;">No job cards yet.</p>
- }
- </div>
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <script>
+        (function () {
+            Chart.defaults.color = "#a7b2c4";
+            Chart.defaults.font.family = "'Inter', sans-serif";
+            Chart.defaults.borderColor = "rgba(255,255,255,0.08)";
 
- <div class="form-card" style="max-width:none;">
- <h3 style="font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:16px; margin-bottom:18px; color:var(--steel);">Mechanic Performance</h3>
- @foreach (var m in Model.MechanicPerformance)
- {
- <div style="padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.06);">
- <div style="display:flex; justify-content:space-between;">
- <span style="font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:13px;">@m.Name</span>
- <span style="font-family:'Space Mono',monospace; font-size:12px; color:var(--ice);">@m.CompletedCount completed</span>
- </div>
- <div style="font-size:12px; color:var(--paper-dim); margin-top:4px;">@m.ActiveCount active right now</div>
- </div>
- }
- @if (!Model.MechanicPerformance.Any())
- {
- <p style="color:var(--paper-dim); font-size:14px;">No mechanics registered yet.</p>
- }
- </div>
-</div>
+            var statusLabels = [@Html.Raw(statusLabels)];
+            var statusCounts = [@Html.Raw(statusCounts)];
+
+            new Chart(document.getElementById("statusChart"), {
+                type: "bar",
+                data: {
+                    labels: statusLabels,
+                    datasets: [{
+                        label: "Active Jobs",
+                        data: statusCounts,
+                        backgroundColor: "#2f6fed",
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { precision: 0 } },
+                        x: { ticks: { font: { size: 10 } } }
+                    }
+                }
+            });
+
+            new Chart(document.getElementById("outcomeChart"), {
+                type: "doughnut",
+                data: {
+                    labels: ["Active", "Completed", "Cancelled"],
+                    datasets: [{
+                        data: [@Model.ActiveJobs, @Model.CompletedJobs, @Model.CancelledJobs],
+                        backgroundColor: ["#7dd3fc", "#2f9e5c", "#7c2d2d"],
+                        borderColor: "#101825",
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: "bottom" } }
+                }
+            });
+
+            var mechNames = [@Html.Raw(mechNames)];
+            if (mechNames.length > 0) {
+                var mechActive = [@Html.Raw(mechActive)];
+                var mechCompleted = [@Html.Raw(mechCompleted)];
+
+                new Chart(document.getElementById("mechanicChart"), {
+                    type: "bar",
+                    data: {
+                        labels: mechNames,
+                        datasets: [
+                            { label: "Active", data: mechActive, backgroundColor: "#2f6fed", borderRadius: 4 },
+                            { label: "Completed", data: mechCompleted, backgroundColor: "#4a5058", borderRadius: 4 }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { position: "bottom" } },
+                        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                    }
+                });
+            }
+        })();
+    </script>
+}

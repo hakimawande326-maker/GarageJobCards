@@ -13,6 +13,7 @@ namespace GarageJobCards.Models
  public DbSet<User> Users { get; set; }
  public DbSet<Vehicle> Vehicles { get; set; }
  public DbSet<JobCard> JobCards { get; set; }
+ public DbSet<UserChangeRequest> UserChangeRequests { get; set; }
 
  protected override void OnModelCreating(DbModelBuilder modelBuilder)
  {
@@ -41,6 +42,12 @@ namespace GarageJobCards.Models
  .WillCascadeOnDelete(false);
 
  modelBuilder.Entity<JobCard>()
+ .HasOptional(j => j.ManagerSignedBy)
+ .WithMany()
+ .HasForeignKey(j => j.ManagerSignedByUserId)
+ .WillCascadeOnDelete(false);
+
+ modelBuilder.Entity<JobCard>()
  .HasRequired(j => j.Vehicle)
  .WithMany()
  .HasForeignKey(j => j.VehicleId)
@@ -50,6 +57,26 @@ namespace GarageJobCards.Models
  .HasRequired(v => v.Owner)
  .WithMany()
  .HasForeignKey(v => v.OwnerId)
+ .WillCascadeOnDelete(false);
+
+ // UserChangeRequest has 3 separate FKs into User (Target, RequestedBy,
+ // ReviewedBy) - same multi-FK situation as JobCard, cascade off for all.
+ modelBuilder.Entity<UserChangeRequest>()
+ .HasRequired(r => r.TargetUser)
+ .WithMany()
+ .HasForeignKey(r => r.TargetUserId)
+ .WillCascadeOnDelete(false);
+
+ modelBuilder.Entity<UserChangeRequest>()
+ .HasRequired(r => r.RequestedBy)
+ .WithMany()
+ .HasForeignKey(r => r.RequestedByUserId)
+ .WillCascadeOnDelete(false);
+
+ modelBuilder.Entity<UserChangeRequest>()
+ .HasOptional(r => r.ReviewedBy)
+ .WithMany()
+ .HasForeignKey(r => r.ReviewedByUserId)
  .WillCascadeOnDelete(false);
 
  base.OnModelCreating(modelBuilder);
@@ -73,8 +100,8 @@ namespace GarageJobCards.Models
  var mechanic2 = new User { FullName = "Mandla Cele", Email = "mcele@philasauto.co.za", Phone = "0721234570", Role = UserRole.Mechanic, PasswordHash = hash, PasswordSalt = salt };
 
  // --- Sample customers (same demo password) ---
- var customer1 = new User { FullName = "Thandeka Ndlovu", Email = "thandeka@example.com", Phone = "0765551234", Role = UserRole.Customer, PasswordHash = hash, PasswordSalt = salt };
- var customer2 = new User { FullName = "Sipho Zulu", Email = "sipho.zulu@example.com", Phone = "0839876543", Role = UserRole.Customer, PasswordHash = hash, PasswordSalt = salt };
+ var customer1 = new User { FullName = "Thandeka Ndlovu", Email = "thandeka@example.com", Phone = "0765551234", Address = "12 Mangosuthu Highway", City = "Umlazi", PostalCode = "4066", Role = UserRole.Customer, PasswordHash = hash, PasswordSalt = salt };
+ var customer2 = new User { FullName = "Sipho Zulu", Email = "sipho.zulu@example.com", Phone = "0839876543", Address = "45 Bhekuzulu Road", City = "Umlazi", PostalCode = "4066", Role = UserRole.Customer, PasswordHash = hash, PasswordSalt = salt };
 
  context.Users.AddRange(new[] { receptionist, manager, mechanic1, mechanic2, customer1, customer2 });
  context.SaveChanges(); // generates Ids
@@ -94,7 +121,7 @@ namespace GarageJobCards.Models
  CreatedByUserId = receptionist.Id,
  AssignedMechanicId = mechanic1.Id,
  ServiceRequested = "Gearbox slipping between 2nd and 3rd.",
- EstimateAmount = 2100m,
+ // EstimateAmount intentionally left unset - mechanic sets this now, not seed data
  Status = JobStatus.InProgress,
  DateBookedUtc = DateTime.UtcNow.AddDays(-1),
  StatusChangedUtc = DateTime.UtcNow.AddHours(-3),
@@ -108,7 +135,7 @@ namespace GarageJobCards.Models
  CustomerId = customer2.Id,
  CreatedByUserId = receptionist.Id,
  ServiceRequested = "Full service + oil change, 21-point inspection.",
- EstimateAmount = 2100m,
+ // EstimateAmount intentionally left unset - mechanic sets this now, not seed data
  Status = JobStatus.AwaitingApproval,
  DateBookedUtc = DateTime.UtcNow.AddHours(-6),
  StatusChangedUtc = DateTime.UtcNow.AddHours(-1)

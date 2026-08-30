@@ -10,6 +10,9 @@ namespace GarageJobCards.Controllers
     {
         private readonly GarageContext db = new GarageContext();
 
+        // How long an OTP stays valid after it's sent.
+        private static readonly TimeSpan OtpLifetime = TimeSpan.FromSeconds(110); // 1:50
+
         // GET: /Account/Login
         public ActionResult Login(string returnUrl, string role)
         {
@@ -41,6 +44,16 @@ namespace GarageJobCards.Controllers
                 ViewBag.ReturnUrl = returnUrl;
                 return View();
             }
+
+            if (!user.IsActive)
+            {
+                ViewBag.Error = "This account has been deactivated. Contact a manager for help.";
+                ViewBag.ReturnUrl = returnUrl;
+                return View();
+            }
+
+            user.LastLoginUtc = DateTime.UtcNow;
+            db.SaveChanges();
 
             Session["UserId"] = user.Id;
             Session["UserName"] = user.FullName;
@@ -77,7 +90,7 @@ namespace GarageJobCards.Controllers
             return View();
         }
 
-        // ---------- Forgot / reset password ----------
+        // ---------- Forgot password via SMS OTP - works for every role ----------
 
         // GET: /Account/ForgotPassword
         public ActionResult ForgotPassword()
@@ -88,69 +101,87 @@ namespace GarageJobCards.Controllers
         // POST: /Account/ForgotPassword
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult ForgotPassword(string email)
+        public ActionResult ForgotPassword(string email, string phone)
         {
-            var user = db.Users.FirstOrDefault(u => u.Email == email);
+            // Both the email AND the phone must match the SAME account -
+            // this is the two-factor check that proves it's really them
+            // before we send a code.
+            var user = db.Users.FirstOrDefault(u => u.Email == email && u.Phone == phone);
 
-            // Always show the same confirmation whether or not the email exists -
-            // this stops someone from using this form to discover which emails
-            // are registered.
-            if (user != null)
+            if (user == null)
             {
-                user.PasswordResetToken = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N");
-                user.PasswordResetTokenExpiryUtc = DateTime.UtcNow.AddHours(1);
-                db.SaveChanges();
-
-                var resetLink = Url.Action("ResetPassword", "Account",
-                    new { token = user.PasswordResetToken }, Request.Url.Scheme);
-
-                try
-                {
-                    EmailHelper.SendPasswordResetEmail(user.Email, resetLink);
-                }
-                catch (Exception ex)
-                {
-                    // Don't let a broken SMTP config crash the request or leak
-                    // whether the email existed - log and fall through to the
-                    // same confirmation screen either way.
-                    System.Diagnostics.Trace.TraceError("Password reset email failed: " + ex.Message);
-                }
+                ViewBag.Error = "We couldn't find an account with that email and phone number combination.";
+                return View();
             }
 
-            return View("ForgotPasswordConfirmation");
+            var otp = new Random().Next(100000, 999999).ToString();
+            user.OtpCode = otp;
+            user.OtpExpiryUtc = DateTime.UtcNow.Add(OtpLifetime);
+            db.SaveChanges();
+
+            try
+            {
+                SmsHelper.SendSms(user.Phone, "Phila's Auto: your password reset code is " + otp + ". It expires in 1 minute 50 seconds.");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.TraceError("OTP SMS failed: " + ex.Message);
+                // TEMPORARY: show the real error so we can diagnose the SMS
+                // problem. Remove this ViewBag.DebugError line once OTPs are
+                // confirmed arriving reliably.
+                ViewBag.Error = "Couldn't send the SMS right now - please try again shortly.";
+                ViewBag.DebugError = ex.ToString();
+                return View();
+            }
+
+            TempData["DebugOtp"] = otp; // TEMPORARY - remove once SMS delivery is confirmed working
+            return RedirectToAction("VerifyOtp", new { email = email });
         }
 
-        // GET: /Account/ResetPassword?token=...
-        public ActionResult ResetPassword(string token)
+        // GET: /Account/VerifyOtp?email=...
+        public ActionResult VerifyOtp(string email)
         {
-            var user = db.Users.FirstOrDefault(u => u.PasswordResetToken == token);
+            var user = db.Users.FirstOrDefault(u => u.Email == email);
+            if (user == null || user.OtpExpiryUtc == null)
+                return RedirectToAction("ForgotPassword");
 
-            if (user == null || user.PasswordResetTokenExpiryUtc == null || user.PasswordResetTokenExpiryUtc < DateTime.UtcNow)
-            {
-                return View("ResetPasswordInvalid");
-            }
-
-            ViewBag.Token = token;
+            ViewBag.Email = email;
+            // Tell the browser exactly when the code expires (as epoch millis)
+            // so the countdown timer matches the server precisely instead of
+            // guessing 110 seconds from whenever the page happens to load.
+            ViewBag.ExpiryEpochMillis = ToEpochMillis(user.OtpExpiryUtc.Value);
+            ViewBag.DebugOtp = TempData["DebugOtp"]; // TEMPORARY - remove once SMS delivery is confirmed working
             return View();
         }
 
-        // POST: /Account/ResetPassword
+        // POST: /Account/VerifyOtp
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult ResetPassword(string token, string newPassword, string confirmPassword)
+        public ActionResult VerifyOtp(string email, string otpCode, string newPassword, string confirmPassword)
         {
-            var user = db.Users.FirstOrDefault(u => u.PasswordResetToken == token);
+            var user = db.Users.FirstOrDefault(u => u.Email == email);
 
-            if (user == null || user.PasswordResetTokenExpiryUtc == null || user.PasswordResetTokenExpiryUtc < DateTime.UtcNow)
+            if (user == null || string.IsNullOrEmpty(user.OtpCode) || user.OtpExpiryUtc == null)
+                return RedirectToAction("ForgotPassword");
+
+            ViewBag.Email = email;
+            ViewBag.ExpiryEpochMillis = ToEpochMillis(user.OtpExpiryUtc.Value);
+
+            if (user.OtpExpiryUtc < DateTime.UtcNow)
             {
-                return View("ResetPasswordInvalid");
+                ViewBag.Error = "That code has expired. Request a new one.";
+                return View("ForgotPasswordExpired");
             }
 
-            ViewBag.Token = token;
-
-            if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
+            if (otpCode != user.OtpCode)
             {
-                ViewBag.Error = "Password must be at least 6 characters.";
+                ViewBag.Error = "That code is incorrect.";
+                return View();
+            }
+
+            if (!PasswordPolicy.IsStrong(newPassword))
+            {
+                ViewBag.Error = "Password doesn't meet the requirements: " + PasswordPolicy.RequirementsText;
                 return View();
             }
 
@@ -164,12 +195,17 @@ namespace GarageJobCards.Controllers
             PasswordHelper.CreateHash(newPassword, out hash, out salt);
             user.PasswordHash = hash;
             user.PasswordSalt = salt;
-            user.PasswordResetToken = null;
-            user.PasswordResetTokenExpiryUtc = null;
+            user.OtpCode = null;
+            user.OtpExpiryUtc = null;
             db.SaveChanges();
 
             TempData["Success"] = "Password updated - log in with your new password.";
             return RedirectToAction("Login");
+        }
+
+        private static long ToEpochMillis(DateTime utcDateTime)
+        {
+            return (long)(utcDateTime - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
         }
 
         protected override void Dispose(bool disposing)

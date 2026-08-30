@@ -1,0 +1,78 @@
+@model IEnumerable<GarageJobCards.Models.User>
+@{
+    ViewData["Title"] = "Manage Accounts";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="page-head" style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px;">
+    <div>
+        <h1>Manage Accounts</h1>
+        <p>Staff accounts - Receptionists and Mechanics.</p>
+    </div>
+    <a href="@Url.Action("Register","User")" class="submit-btn" style="text-decoration:none; display:inline-block;">+ Register Staff</a>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert-success">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span>@TempData["Success"]</span>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <p style="color:#ff6b6b; margin-bottom:20px;">@TempData["Error"]</p>
+}
+
+<div class="form-card" style="max-width:none; padding:0; overflow:hidden;">
+    <table style="width:100%; border-collapse:collapse;">
+        <thead>
+            <tr style="text-align:left; font-family:'Oswald',sans-serif; font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--steel); border-bottom:1px solid var(--steel-dim);">
+                <th style="padding:14px 18px;">Name</th>
+                <th style="padding:14px 18px;">Role</th>
+                <th style="padding:14px 18px;">Email</th>
+                <th style="padding:14px 18px;">Last Login</th>
+                <th style="padding:14px 18px;">Status</th>
+                <th style="padding:14px 18px;"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var s in Model)
+            {
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.06); font-family:'Inter',sans-serif; font-size:14px;">
+                    <td style="padding:12px 18px;">@s.FullName</td>
+                    <td style="padding:12px 18px; color:var(--paper-dim);">@s.Role</td>
+                    <td style="padding:12px 18px; color:var(--paper-dim);">@s.Email</td>
+                    <td style="padding:12px 18px; color:var(--paper-dim); font-family:'Space Mono',monospace; font-size:12px;">
+                        @(s.LastLoginUtc.HasValue ? s.LastLoginUtc.Value.ToLocalTime().ToString("dd MMM, HH:mm") : "Never")
+                    </td>
+                    <td style="padding:12px 18px;">
+                        @if (s.IsActive)
+                        {
+                            <span style="color:#4caf50; font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase;">Active</span>
+                        }
+                        else
+                        {
+                            <span style="color:#ff6b6b; font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase;">Deactivated</span>
+                        }
+                    </td>
+                    <td style="padding:12px 18px; text-align:right; white-space:nowrap;">
+                        <a href="@Url.Action("EditStaff", new { id = s.Id })" class="btn-ghost" style="text-decoration:none; padding:8px 14px; font-size:12px;">Edit</a>
+
+                        @using (Html.BeginForm("Activate", "User", new { id = s.Id }, FormMethod.Post, new { style = "display:inline-block; margin-left:6px;" }))
+                        {
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn-ghost" style="padding:8px 14px; font-size:12px; color:#4caf50; border-color:#4caf50;" disabled="@(s.IsActive ? "disabled" : null)">Activate</button>
+                        }
+
+                        @using (Html.BeginForm("Deactivate", "User", new { id = s.Id }, FormMethod.Post, new { style = "display:inline-block; margin-left:6px;" }))
+                        {
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn-ghost" style="padding:8px 14px; font-size:12px; color:#ff6b6b; border-color:#ff6b6b;" disabled="@(!s.IsActive ? "disabled" : null)">Deactivate</button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
