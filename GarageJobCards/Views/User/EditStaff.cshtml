@@ -15,9 +15,29 @@
         <p style="color:#ff6b6b; margin-bottom:20px;">@TempData["Error"]</p>
     }
 
-    @using (Html.BeginForm("EditStaff", "User", new { id = Model.Id }, FormMethod.Post))
+    @using (Html.BeginForm("EditStaff", "User", new { id = Model.Id }, FormMethod.Post, new { enctype = "multipart/form-data" }))
     {
         @Html.AntiForgeryToken()
+
+        <div class="form-row" style="display:flex; align-items:center; gap:16px;">
+            <div style="width:72px; height:72px; border-radius:50%; overflow:hidden; flex:0 0 72px; background:var(--asphalt); display:flex; align-items:center; justify-content:center; border:2px solid var(--steel-dim);">
+                @if (!string.IsNullOrEmpty(Model.ProfilePhotoUrl))
+                {
+                    <img src="@Url.Content("~" + Model.ProfilePhotoUrl)" alt="@Model.FullName" style="width:100%; height:100%; object-fit:cover;" />
+                }
+                else
+                {
+                    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--steel)" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/></svg>
+                }
+            </div>
+            <div style="flex:1;">
+                <label for="photoFile">Profile photo</label>
+                <input type="file" name="photoFile" id="photoFile" accept="image/*" />
+                <span style="color:var(--steel); font-size:11px; font-family:'Space Mono',monospace; display:block; margin-top:6px;">
+                    Choose a new file to replace the current photo, or leave blank to keep it.
+                </span>
+            </div>
+        </div>
 
         <div class="form-row">
             <label for="fullName">Full name</label>
@@ -29,9 +49,9 @@
 
         <div class="form-row">
             <label for="email">Email</label>
-            <input type="email" name="email" id="email" value="@Model.Email" required="required" placeholder="name@gmail.com" />
+            <input type="email" name="email" id="email" value="@Model.Email" required="required" placeholder="name@philasauto.co.za" />
             <span style="color:var(--steel); font-size:11px; font-family:'Space Mono',monospace; display:block; margin-top:6px;">
-                Must be a Gmail address (ending in @@gmail.com).
+                Must be a philasauto.co.za address (ending in @@philasauto.co.za).
             </span>
         </div>
 

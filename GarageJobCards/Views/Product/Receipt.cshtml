@@ -1,0 +1,130 @@
+@model GarageJobCards.Models.Purchase
+@{
+    ViewData["Title"] = "Receipt " + Model.PurchaseNumber;
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="page-head no-print">
+    <h1>Sale Complete</h1>
+    <p>Receipt @Model.PurchaseNumber</p>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert-success no-print">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span>@TempData["Success"]</span>
+    </div>
+}
+
+<div class="ticket-page" style="max-width:600px;">
+    <div class="ticket-top">
+        <div>
+            <h2>Phila's Auto Repair Shop</h2>
+            <div class="job-number">J Section, Umlazi, Durban, 4066</div>
+            <div class="job-number">+27 78 234 5566</div>
+            <div class="job-number">VAT Reg: 4123456789</div>
+        </div>
+        <div style="text-align:right;">
+            <div class="job-number">RECEIPT @Model.PurchaseNumber</div>
+            <div class="job-number">@Model.PurchaseDateUtc.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</div>
+        </div>
+    </div>
+
+    <div class="ticket-grid">
+        <div class="ticket-field">
+            <div class="k">Sold to</div>
+            <div class="v">@Model.CustomerDisplayName</div>
+        </div>
+        <div class="ticket-field">
+            <div class="k">Contact</div>
+            <div class="v">@(Model.Customer != null ? Model.Customer.Phone : (Model.WalkInPhone ?? "-"))</div>
+        </div>
+        <div class="ticket-field">
+            <div class="k">Processed by</div>
+            <div class="v">@(Model.ProcessedByUser != null ? Model.ProcessedByUser.FullName : "Online checkout")</div>
+        </div>
+        <div class="ticket-field">
+            <div class="k">Fulfilment</div>
+            <div class="v">@(Model.CollectionMethod == GarageJobCards.Models.CollectionMethod.Delivery ? "Delivery" : "Collect from shop")</div>
+        </div>
+    </div>
+
+    <div style="border-top:2px dashed rgba(0,0,0,0.25); border-bottom:2px dashed rgba(0,0,0,0.25); padding:18px 0; margin:20px 0;">
+        <table style="width:100%; border-collapse:collapse; font-family:'Inter',sans-serif; font-size:14px;">
+            <thead>
+                <tr style="text-align:left; font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1px; text-transform:uppercase; color:#7a756c;">
+                    <th style="padding-bottom:10px;">Item</th>
+                    <th style="padding-bottom:10px; text-align:center;">Qty</th>
+                    <th style="padding-bottom:10px; text-align:right;">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td style="padding:6px 0;">
+                            @item.Product.Name
+                            <div style="font-family:'Space Mono',monospace; font-size:10px; color:#7a756c;">R@(item.UnitPrice.ToString("N2")) each</div>
+                        </td>
+                        <td style="padding:6px 0; text-align:center;">@item.Quantity</td>
+                        <td style="padding:6px 0; text-align:right;">R@(item.LineTotal.ToString("N2"))</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <div style="display:flex; justify-content:flex-end; margin-top:14px; padding-top:14px; border-top:1px solid rgba(0,0,0,0.15);">
+            <table style="font-family:'Space Mono',monospace; font-size:13px;">
+                <tr>
+                    <td style="padding:3px 24px 3px 0; color:#7a756c; text-transform:uppercase; letter-spacing:0.5px;">Subtotal</td>
+                    <td style="padding:3px 0; text-align:right;">R@(Model.SubtotalExclVat.ToString("N2"))</td>
+                </tr>
+                <tr>
+                    <td style="padding:3px 24px 3px 0; color:#7a756c; text-transform:uppercase; letter-spacing:0.5px;">VAT (15%)</td>
+                    <td style="padding:3px 0; text-align:right;">R@(Model.VatAmount.ToString("N2"))</td>
+                </tr>
+                @if (Model.CollectionMethod == GarageJobCards.Models.CollectionMethod.Delivery)
+                {
+                    <tr>
+                        <td style="padding:3px 24px 3px 0; color:#7a756c; text-transform:uppercase; letter-spacing:0.5px;">Delivery</td>
+                        <td style="padding:3px 0; text-align:right;">R@(Model.DeliveryFee.ToString("N2"))</td>
+                    </tr>
+                }
+                <tr>
+                    <td style="padding-top:10px; font-family:'Anton',sans-serif; font-size:16px; text-transform:uppercase;">Total Paid</td>
+                    <td style="padding-top:10px; text-align:right; font-family:'Anton',sans-serif; font-size:22px;">R@(Model.GrandTotal.ToString("N2"))</td>
+                </tr>
+                <tr>
+                    <td style="padding-top:14px; color:#7a756c; text-transform:uppercase; letter-spacing:0.5px; font-size:11px;">Paid via</td>
+                    <td style="padding-top:14px; text-align:right; font-size:13px;">@Model.PaymentMethod</td>
+                </tr>
+                @if (Model.PaymentMethod == GarageJobCards.Models.PaymentMethod.Cash && Model.AmountTendered.HasValue)
+                {
+                    <tr>
+                        <td style="color:#7a756c; text-transform:uppercase; letter-spacing:0.5px; font-size:11px;">Tendered</td>
+                        <td style="text-align:right; font-size:13px;">R@(Model.AmountTendered.Value.ToString("N2"))</td>
+                    </tr>
+                    <tr>
+                        <td style="color:#7a756c; text-transform:uppercase; letter-spacing:0.5px; font-size:11px;">Change</td>
+                        <td style="text-align:right; font-size:13px;">R@(Model.ChangeDue.Value.ToString("N2"))</td>
+                    </tr>
+                }
+            </table>
+        </div>
+    </div>
+
+    <div class="ticket-notes">
+        <p style="font-size:12px; color:#7a756c;">
+            Parts carry a 90-day warranty against manufacturing defects. Please keep this receipt as proof of purchase.
+        </p>
+    </div>
+</div>
+
+ <div class="no-print" style="display:flex; gap:12px; justify-content:center; margin-top:24px;">
+    <button onclick="window.print()" class="submit-btn print-btn">Print Receipt</button>
+    @if (Model.Customer != null)
+    {
+        <a href="@Url.Action("Create","Delivery", new { purchaseId = Model.Id })" class="btn-ghost" style="text-decoration:none; display:inline-block;">Arrange Delivery</a>
+    }
+</div>

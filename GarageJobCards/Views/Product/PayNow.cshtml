@@ -1,0 +1,41 @@
+@model GarageJobCards.Models.Purchase
+@using System.Collections.Specialized
+@{
+    ViewData["Title"] = "Redirecting to Payment";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    string payFastUrl = ViewBag.PayFastUrl;
+    var fields = ViewBag.Fields as NameValueCollection;
+}
+
+<div class="page-head">
+    <h1>Redirecting to Payment</h1>
+    <p>Taking you to our secure payment partner, PayFast, to complete your order @Model.PurchaseNumber.</p>
+</div>
+
+<div class="form-card" style="text-align:center;">
+    <p style="color:var(--paper-dim); font-size:14px; margin-bottom:20px;">
+        If you're not redirected automatically in a moment, click the button below.
+    </p>
+
+    @using (Html.BeginForm(null, null, FormMethod.Post, new { action = payFastUrl, id = "payfastForm" }))
+    {
+        if (fields != null)
+        {
+            foreach (string key in fields.Keys)
+            {
+                @Html.Hidden(key, fields[key])
+            }
+        }
+        <button type="submit" class="submit-btn">Continue to PayFast</button>
+    }
+
+    <p style="color:var(--steel); font-size:11px; font-family:'Space Mono',monospace; margin-top:20px;">
+        Sandbox mode - use PayFast's test card, no real charge will occur.
+    </p>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById("payfastForm").submit();
+    </script>
+}

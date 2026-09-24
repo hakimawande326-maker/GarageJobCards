@@ -6,6 +6,7 @@
     bool isManager = ViewBag.IsManager == true;
     bool hasHistory = ViewBag.HasHistory == true;
     var pending = ViewBag.PendingRequests as System.Collections.Generic.List<GarageJobCards.Models.UserChangeRequest>;
+    var vehicles = ViewBag.Vehicles as System.Collections.Generic.List<GarageJobCards.Models.Vehicle>;
 }
 
 <div class="page-head" style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px;">
@@ -26,7 +27,7 @@
     @if (TempData["Success"] != null)
     {
         <div class="alert-success">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
             <span>@TempData["Success"]</span>
         </div>
     }
@@ -85,29 +86,104 @@
             </div>
         </div>
 
+        <div class="form-row">
+            <label for="driversLicenseNumber">Driver's license number</label>
+            <input type="text" name="driversLicenseNumber" id="driversLicenseNumber" value="@Model.DriversLicenseNumber" maxlength="20" placeholder="e.g. TN123456" />
+        </div>
+
         <button type="submit" class="submit-btn">Save Changes</button>
     }
 </div>
 
 <div class="form-card" style="margin-top:20px;">
-    <h3 style="font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:15px; margin-bottom:6px;">Reset Password</h3>
-    <p style="color:var(--paper-dim); font-size:13px; margin-bottom:16px;">
-        No email needed - set a new password directly and tell the customer what it is.
-    </p>
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+        <h3 style="font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:15px;">
+            Vehicles on File (@(vehicles != null ? vehicles.Count : 0))
+        </h3>
+        <a href="@Url.Action("Create","Vehicle", new { ownerId = Model.Id })" class="submit-btn" style="text-decoration:none; display:inline-block; padding:10px 18px; font-size:12px;">+ Add Another Vehicle</a>
+    </div>
 
-    @using (Html.BeginForm("ResetCustomerPassword", "User", new { id = Model.Id }, FormMethod.Post))
+    @if (vehicles == null || !vehicles.Any())
     {
-        @Html.AntiForgeryToken()
-        <div class="form-row">
-            <label for="newPassword">New password</label>
-            <div class="password-wrap">
-                <input type="password" name="newPassword" id="newPassword" required="required" minlength="8" />
-                <button type="button" class="password-toggle" data-target="newPassword">Show</button>
+        <p style="color:var(--paper-dim); font-size:14px;">No vehicles registered yet for this customer.</p>
+    }
+    else
+    {
+        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+            <thead>
+                <tr style="text-align:left; font-family:'Oswald',sans-serif; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--steel); border-bottom:1px solid var(--steel-dim);">
+                    <th style="padding:8px 10px;">Vehicle</th>
+                    <th style="padding:8px 10px;">Colour</th>
+                    <th style="padding:8px 10px;">Plate</th>
+                    <th style="padding:8px 10px;">VIN</th>
+                    <th style="padding:8px 10px;">Mileage</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var v in vehicles)
+                {
+                    <tr style="border-bottom:1px solid var(--steel-dim);">
+                        <td style="padding:8px 10px;">@v.Make @v.Model</td>
+                        <td style="padding:8px 10px; color:var(--paper-dim);">@(v.Colour ?? "-")</td>
+                        <td style="padding:8px 10px; color:var(--paper-dim);">@v.PlateNumber</td>
+                        <td style="padding:8px 10px; color:var(--paper-dim); font-family:'Space Mono',monospace; font-size:11px;">@(v.VinNumber ?? "-")</td>
+                        <td style="padding:8px 10px; color:var(--paper-dim);">@(v.Mileage.HasValue ? v.Mileage.Value.ToString("N0") + " km" : "-")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+<div class="form-card" style="margin-top:20px;">
+    <h3 style="font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:15px; margin-bottom:6px;">Reset Password</h3>
+
+    @{
+        bool hasPendingPasswordRequest = pending != null && pending.Any(r => r.FieldName == "PasswordReset");
+    }
+
+    @if (isManager)
+    {
+        <p style="color:var(--paper-dim); font-size:13px; margin-bottom:16px;">
+            No email needed - set a new password directly and tell the customer what it is.
+        </p>
+
+        using (Html.BeginForm("ResetCustomerPassword", "User", new { id = Model.Id }, FormMethod.Post))
+        {
+            @Html.AntiForgeryToken()
+            <div class="form-row">
+                <label for="newPassword">New password</label>
+                <div class="password-wrap">
+                    <input type="password" name="newPassword" id="newPassword" required="required" minlength="8" />
+                    <button type="button" class="password-toggle" data-target="newPassword">Show</button>
+                </div>
+                <span style="color:var(--steel); font-size:11px; font-family:'Space Mono',monospace; display:block; margin-top:6px;">
+                    At least 8 characters, with uppercase, lowercase, a number, and a special character.
+                </span>
             </div>
-            <span style="color:var(--steel); font-size:11px; font-family:'Space Mono',monospace; display:block; margin-top:6px;">
-                At least 8 characters, with uppercase, lowercase, a number, and a special character.
-            </span>
-        </div>
-        <button type="submit" class="btn-ghost">Reset Password</button>
+            <button type="submit" class="btn-ghost">Reset Password</button>
+        }
+    }
+    else if (hasPendingPasswordRequest)
+    {
+        <p style="color:#e0a942; font-size:13px;">
+            A password reset request is already pending Manager approval.
+        </p>
+    }
+    else
+    {
+        <p style="color:var(--paper-dim); font-size:13px; margin-bottom:16px;">
+            Resetting a customer's password now needs Manager approval - submit a request below.
+        </p>
+
+        using (Html.BeginForm("RequestCustomerPasswordReset", "User", new { id = Model.Id }, FormMethod.Post))
+        {
+            @Html.AntiForgeryToken()
+            <div class="form-row">
+                <label for="reason">Reason (optional)</label>
+                <input type="text" name="reason" id="reason" maxlength="500" placeholder="e.g. Customer forgot their password, verified their identity" />
+            </div>
+            <button type="submit" class="btn-ghost">Request Password Reset</button>
+        }
     }
 </div>

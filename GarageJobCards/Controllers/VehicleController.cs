@@ -12,6 +12,10 @@ namespace GarageJobCards.Controllers
         private readonly GarageContext db = new GarageContext();
 
         // GET: /Vehicle/Create?ownerId=5
+        // ownerId pre-selects the customer (e.g. straight after registering
+        // them), but the dropdown lists every customer - so this same screen
+        // is also how you add a SECOND (or third...) vehicle for a customer
+        // who's already registered and just brought in another car.
         public ActionResult Create(int? ownerId)
         {
             ViewBag.Customers = db.Users.Where(u => u.Role == UserRole.Customer).OrderBy(u => u.FullName).ToList();
@@ -21,29 +25,15 @@ namespace GarageJobCards.Controllers
         }
 
         // POST: /Vehicle/Create
-        // Registers the vehicle AND creates its first job card in one step -
-        // "ServiceRequested" comes from the same form, it just isn't part of
-        // the Vehicle model itself. The quoted amount is NOT set here - the
-        // mechanic sets it from their dashboard once they've actually
-        // diagnosed the car, not the receptionist at intake.
-        //
-        // IMPORTANT: this parameter must NOT be named "model" - Vehicle has a
-        // property called "Model" (the car's model name), and MVC's binder
-        // matches parameter/field names case-insensitively. A parameter named
-        // "model" collides with the "Model" form field and makes the binder
-        // try to convert that single field's text into the whole Vehicle
-        // object, producing a "the value 'X' is invalid" error. "vehicle"
-        // avoids the collision entirely.
+        // "vehicle" must NOT be named "model" - Vehicle has a property called
+        // "Model" (the car's model name), and MVC's binder matches
+        // parameter/field names case-insensitively, causing a binding
+        // collision if the parameter itself is named "model".
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult Create(Vehicle vehicle, string ServiceRequested)
         {
             ModelState.Remove("Owner");
-
-            // Vehicle's own [Required]/[StringLength]/[RegularExpression]/[Range]
-            // attributes (Make, Model, PlateNumber, Mileage) are checked
-            // automatically here since "vehicle" is bound directly from the
-            // form - ModelState.IsValid below covers all of them.
 
             if (string.IsNullOrWhiteSpace(ServiceRequested))
                 ModelState.AddModelError("ServiceRequested", "Describe what the customer needs done.");
@@ -58,7 +48,7 @@ namespace GarageJobCards.Controllers
             }
 
             db.Vehicles.Add(vehicle);
-            db.SaveChanges(); // generates vehicle.Id
+            db.SaveChanges();
 
             var job = new JobCard
             {
@@ -72,7 +62,7 @@ namespace GarageJobCards.Controllers
             };
 
             db.JobCards.Add(job);
-            db.SaveChanges(); // generates job.Id
+            db.SaveChanges();
 
             job.JobNumber = "JC-" + job.Id.ToString("D6");
             db.SaveChanges();

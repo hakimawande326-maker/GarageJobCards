@@ -14,7 +14,7 @@
     @if (TempData["Success"] != null)
     {
         <div class="alert-success">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
             <span>@TempData["Success"]</span>
         </div>
     }
@@ -40,9 +40,9 @@
 
         <div class="form-row">
             @Html.LabelFor(m => m.Email)
-            @Html.TextBoxFor(m => m.Email, new { type = "email", placeholder = "name@gmail.com" })
+            @Html.TextBoxFor(m => m.Email, new { type = "email", placeholder = "name@gmail.com", id = "Email" })
             @Html.ValidationMessageFor(m => m.Email)
-            <span style="color:var(--steel); font-size:11px; font-family:'Space Mono',monospace; display:block; margin-top:6px;">
+            <span id="emailHint" style="color:var(--steel); font-size:11px; font-family:'Space Mono',monospace; display:block; margin-top:6px;">
                 Must be a Gmail address (ending in @@gmail.com).
             </span>
         </div>
@@ -66,6 +66,15 @@
             </div>
         </div>
 
+        <div class="form-row" id="licenseRow">
+            @Html.LabelFor(m => m.DriversLicenseNumber)
+            @Html.TextBoxFor(m => m.DriversLicenseNumber, new { maxlength = 20, placeholder = "e.g. TN123456" })
+            @Html.ValidationMessageFor(m => m.DriversLicenseNumber)
+            <span style="color:var(--steel); font-size:11px; font-family:'Space Mono',monospace; display:block; margin-top:6px;">
+                Confirms whoever collects the vehicle is licensed to drive it.
+            </span>
+        </div>
+
         <div class="form-row">
             @Html.LabelFor(m => m.Password)
             <div class="password-wrap">
@@ -86,6 +95,7 @@
                 @if (isManager)
                 {
                     <option value="Receptionist">Receptionist</option>
+                    <option value="Driver">Driver</option>
                     <option value="Manager">Manager</option>
                 }
             </select>
@@ -94,3 +104,35 @@
         <button type="submit" class="submit-btn">Register</button>
     }
 </div>
+
+@section Scripts {
+    <script>
+        function toggleLicenseField() {
+            var role = document.getElementById("Role").value;
+            document.getElementById("licenseRow").style.display = (role === "Customer") ? "block" : "none";
+        }
+
+        function toggleEmailHint() {
+            var role = document.getElementById("Role").value;
+            var isStaff = (role === "Mechanic" || role === "Receptionist" || role === "Manager" || role === "Driver");
+            var emailInput = document.getElementById("Email");
+            var hint = document.getElementById("emailHint");
+
+            if (isStaff) {
+                emailInput.placeholder = "name@@philasauto.co.za";
+                hint.textContent = "Must be a philasauto.co.za address (ending in @@philasauto.co.za).";
+            } else {
+                emailInput.placeholder = "name@@gmail.com";
+                hint.textContent = "Must be a Gmail address (ending in @@gmail.com).";
+            }
+        }
+
+        function onRoleChange() {
+            toggleLicenseField();
+            toggleEmailHint();
+        }
+
+        document.getElementById("Role").addEventListener("change", onRoleChange);
+        onRoleChange();
+    </script>
+}

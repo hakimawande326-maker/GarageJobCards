@@ -9,7 +9,8 @@ namespace GarageJobCards.Models
         Receptionist = 0,
         Manager = 1,
         Mechanic = 2,
-        Customer = 3
+        Customer = 3,
+        Driver = 4
     }
 
     public class User
@@ -46,6 +47,13 @@ namespace GarageJobCards.Models
         [Display(Name = "Postal code")]
         public string PostalCode { get; set; }
 
+        // Driver's license / registration number - only meaningful for
+        // Customer accounts, used to confirm the person collecting the
+        // vehicle is licensed to drive it.
+        [StringLength(20)]
+        [Display(Name = "Driver's license number")]
+        public string DriversLicenseNumber { get; set; }
+
         public UserRole Role { get; set; }
 
         // Never store plain-text passwords - see Infrastructure/PasswordHelper.cs
@@ -62,9 +70,14 @@ namespace GarageJobCards.Models
         // card history (which references them) stays intact.
         public bool IsActive { get; set; }
 
-        // Base64 PNG data URL of a drawn signature - only meaningful for
-        // Manager accounts, used to sign off job cards at pickup.
-        public string SignatureImageDataUrl { get; set; }
+        // Base64 PNG data URL of a drawn signature - used by Managers to sign
+        // off job cards, and by Customers to sign approval/decline of a quote.
+ public string SignatureImageDataUrl { get; set; }
+
+        // Relative path under ~/Content/images/staff/ - null means no photo
+        // uploaded yet, shows a placeholder avatar instead. Only meaningful
+        // for staff (Receptionist/Manager/Mechanic) accounts.
+        public string ProfilePhotoUrl { get; set; }
 
         // One-time code sent via SMS for password reset - valid for a short
         // window (1 minute 50 seconds), cleared once used or expired.

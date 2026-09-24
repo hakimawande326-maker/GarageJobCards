@@ -1,6 +1,8 @@
 using System;
 using System.Data.Entity;
+using System.IO;
 using System.Linq;
+using System.Web;
 using System.Web.Mvc;
 using GarageJobCards.Infrastructure;
 using GarageJobCards.Models;
@@ -14,31 +16,35 @@ namespace GarageJobCards.Controllers
 
         // ---------- Registration ----------
 
-        // GET: /User/Register
         public ActionResult Register()
         {
-            // Receptionists can register Customers or Mechanics.
-            // Managers can register any role, including other staff.
             ViewBag.IsManager = CurrentUserRole == UserRole.Manager;
             return View(new User());
         }
 
-        // POST: /User/Register
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult Register(User model)
         {
             ViewBag.IsManager = CurrentUserRole == UserRole.Manager;
 
-            // Server-side role lockdown - never trust the posted role blindly.
             if (CurrentUserRole != UserRole.Manager && model.Role != UserRole.Customer && model.Role != UserRole.Mechanic)
                 model.Role = UserRole.Customer;
 
             if (db.Users.Any(u => u.Email == model.Email))
                 ModelState.AddModelError("Email", "A user with this email already exists.");
 
-            if (!EmailPolicy.IsAllowedDomain(model.Email))
-                ModelState.AddModelError("Email", EmailPolicy.RequirementsText);
+            bool isStaffRole = model.Role == UserRole.Receptionist || model.Role == UserRole.Manager || model.Role == UserRole.Mechanic || model.Role == UserRole.Driver;
+            if (isStaffRole)
+            {
+                if (!EmailPolicy.IsAllowedStaffDomain(model.Email))
+                    ModelState.AddModelError("Email", EmailPolicy.StaffRequirementsText);
+            }
+            else
+            {
+                if (!EmailPolicy.IsAllowedDomain(model.Email))
+                    ModelState.AddModelError("Email", EmailPolicy.RequirementsText);
+            }
 
             if (!PasswordPolicy.IsStrong(model.Password))
                 ModelState.AddModelError("Password", PasswordPolicy.RequirementsText);
@@ -59,8 +65,6 @@ namespace GarageJobCards.Controllers
 
             TempData["Success"] = model.FullName + " was registered as a " + model.Role + ".";
 
-            // If a receptionist just registered a customer, jump straight into
-            // registering that customer's vehicle.
             if (model.Role == UserRole.Customer)
                 return RedirectToAction("Create", "Vehicle", new { ownerId = model.Id });
 
@@ -69,7 +73,6 @@ namespace GarageJobCards.Controllers
 
         // ---------- Customer list + limited edit (Receptionist), full edit (Manager) ----------
 
-        // GET: /User/Customers
         public ActionResult Customers()
         {
             var customers = db.Users.Where(u => u.Role == UserRole.Customer)
@@ -77,7 +80,6 @@ namespace GarageJobCards.Controllers
             return View(customers);
         }
 
-        // GET: /User/EditCustomer/5
         public ActionResult EditCustomer(int id)
         {
             var customer = db.Users.FirstOrDefault(u => u.Id == id && u.Role == UserRole.Customer);
@@ -87,18 +89,19 @@ namespace GarageJobCards.Controllers
             ViewBag.PendingRequests = db.UserChangeRequests
                 .Where(r => r.TargetUserId == id && r.Status == ChangeRequestStatus.Pending)
                 .ToList();
-            ViewBag.HasHistory = db.Vehicles.Any(v => v.OwnerId == id) || db.JobCards.Any(j => j.CustomerId == id);
+
+            // Show every vehicle this customer has ever brought in - a
+            // customer can register as many vehicles as they own.
+            var vehicles = db.Vehicles.Where(v => v.OwnerId == id).ToList();
+            ViewBag.Vehicles = vehicles;
+            ViewBag.HasHistory = vehicles.Any() || db.JobCards.Any(j => j.CustomerId == id);
 
             return View(customer);
         }
 
-        // POST: /User/EditCustomer/5
-        // Phone/Address/City/PostalCode apply immediately for both roles.
-        // FullName/Email apply immediately for a Manager, but for a
-        // Receptionist they create a pending UserChangeRequest instead.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult EditCustomer(int id, string fullName, string email, string phone, string address, string city, string postalCode)
+        public ActionResult EditCustomer(int id, string fullName, string email, string phone, string address, string city, string postalCode, string driversLicenseNumber)
         {
             var customer = db.Users.FirstOrDefault(u => u.Id == id && u.Role == UserRole.Customer);
             if (customer == null) return HttpNotFound();
@@ -108,7 +111,9 @@ namespace GarageJobCards.Controllers
             ViewBag.PendingRequests = db.UserChangeRequests
                 .Where(r => r.TargetUserId == id && r.Status == ChangeRequestStatus.Pending)
                 .ToList();
-            ViewBag.HasHistory = db.Vehicles.Any(v => v.OwnerId == id) || db.JobCards.Any(j => j.CustomerId == id);
+            var vehicles = db.Vehicles.Where(v => v.OwnerId == id).ToList();
+            ViewBag.Vehicles = vehicles;
+            ViewBag.HasHistory = vehicles.Any() || db.JobCards.Any(j => j.CustomerId == id);
 
             if (!string.IsNullOrWhiteSpace(email) && !EmailPolicy.IsAllowedDomain(email))
             {
@@ -138,6 +143,7 @@ namespace GarageJobCards.Controllers
             customer.Address = address;
             customer.City = city;
             customer.PostalCode = postalCode;
+            customer.DriversLicenseNumber = driversLicenseNumber;
 
             var messages = new System.Collections.Generic.List<string>();
 
@@ -182,9 +188,13 @@ namespace GarageJobCards.Controllers
             return RedirectToAction("EditCustomer", new { id = id });
         }
 
-        // POST: /User/ResetCustomerPassword/5 - set a new password directly, no email needed.
+        // POST: /User/ResetCustomerPassword/5 - Manager sets it directly.
+        // A Receptionist no longer resets a customer's password on the spot -
+        // they must request it via RequestCustomerPasswordReset below, and a
+        // Manager reviews and fulfills the request.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequireRole(UserRole.Manager)]
         public ActionResult ResetCustomerPassword(int id, string newPassword)
         {
             var customer = db.Users.FirstOrDefault(u => u.Id == id && u.Role == UserRole.Customer);
@@ -206,12 +216,74 @@ namespace GarageJobCards.Controllers
             return RedirectToAction("EditCustomer", new { id = id });
         }
 
-        // POST: /User/DeleteCustomer/5
-        // A customer with any vehicles or job cards can't be hard-deleted -
-        // that history is referenced by foreign keys and deleting the
-        // customer would corrupt the job board / reports. In that case we
-        // deactivate them instead (same mechanism as staff) and explain why.
-        // A customer with no history at all is safe to remove completely.
+        // POST: /User/RequestCustomerPasswordReset/5 - Receptionist asks a
+        // Manager to reset this customer's password. No new password is
+        // typed here - it just flags the request; the Manager sets the
+        // actual password when they fulfill it, so a plain-text password
+        // never sits in the change-request table waiting for approval.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult RequestCustomerPasswordReset(int id, string reason)
+        {
+            var customer = db.Users.FirstOrDefault(u => u.Id == id && u.Role == UserRole.Customer);
+            if (customer == null) return HttpNotFound();
+
+            bool alreadyPending = db.UserChangeRequests.Any(r =>
+                r.TargetUserId == id && r.FieldName == "PasswordReset" && r.Status == ChangeRequestStatus.Pending);
+
+            if (alreadyPending)
+            {
+                TempData["Error"] = "There's already a pending password reset request for this customer.";
+                return RedirectToAction("EditCustomer", new { id = id });
+            }
+
+            db.UserChangeRequests.Add(new UserChangeRequest
+            {
+                TargetUserId = customer.Id,
+                FieldName = "PasswordReset",
+                NewValue = string.IsNullOrWhiteSpace(reason) ? "(no reason given)" : reason,
+                RequestedByUserId = CurrentUserId.Value
+            });
+            db.SaveChanges();
+
+            TempData["Success"] = "Password reset request sent to a Manager for " + customer.FullName + ".";
+            return RedirectToAction("EditCustomer", new { id = id });
+        }
+
+        // POST: /User/FulfillPasswordResetRequest/5 - Manager reviews the
+        // request and sets the actual new password in one step, approving
+        // the request at the same time.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireRole(UserRole.Manager)]
+        public ActionResult FulfillPasswordResetRequest(int requestId, string newPassword)
+        {
+            var request = db.UserChangeRequests.Find(requestId);
+            if (request == null || request.FieldName != "PasswordReset") return HttpNotFound();
+
+            var customer = db.Users.Find(request.TargetUserId);
+            if (customer == null) return HttpNotFound();
+
+            if (!PasswordPolicy.IsStrong(newPassword))
+            {
+                TempData["Error"] = "Password doesn't meet the requirements: " + PasswordPolicy.RequirementsText;
+                return RedirectToAction("ChangeRequests");
+            }
+
+            string hash, salt;
+            PasswordHelper.CreateHash(newPassword, out hash, out salt);
+            customer.PasswordHash = hash;
+            customer.PasswordSalt = salt;
+
+            request.Status = ChangeRequestStatus.Approved;
+            request.ReviewedByUserId = CurrentUserId;
+            request.ReviewedAtUtc = DateTime.UtcNow;
+            db.SaveChanges();
+
+            TempData["Success"] = "Password reset for " + customer.FullName + ". Give them the new password directly.";
+            return RedirectToAction("ChangeRequests");
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult DeleteCustomer(int id)
@@ -239,38 +311,35 @@ namespace GarageJobCards.Controllers
 
         // ---------- Manager: full account management for staff ----------
 
-        // GET: /User/ManageAccounts
         [RequireRole(UserRole.Manager)]
         public ActionResult ManageAccounts()
         {
             var staff = db.Users
-                .Where(u => u.Role == UserRole.Mechanic || u.Role == UserRole.Receptionist)
+                .Where(u => u.Role == UserRole.Mechanic || u.Role == UserRole.Receptionist || u.Role == UserRole.Driver)
                 .OrderBy(u => u.Role).ThenBy(u => u.FullName)
                 .ToList();
             return View(staff);
         }
 
-        // GET: /User/EditStaff/5
         [RequireRole(UserRole.Manager)]
         public ActionResult EditStaff(int id)
         {
-            var staff = db.Users.FirstOrDefault(u => u.Id == id && (u.Role == UserRole.Mechanic || u.Role == UserRole.Receptionist));
+            var staff = db.Users.FirstOrDefault(u => u.Id == id && (u.Role == UserRole.Mechanic || u.Role == UserRole.Receptionist || u.Role == UserRole.Driver));
             if (staff == null) return HttpNotFound();
             return View(staff);
         }
 
-        // POST: /User/EditStaff/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireRole(UserRole.Manager)]
-        public ActionResult EditStaff(int id, string fullName, string email, string phone, UserRole role)
+        public ActionResult EditStaff(int id, string fullName, string email, string phone, UserRole role, HttpPostedFileBase photoFile)
         {
-            var staff = db.Users.FirstOrDefault(u => u.Id == id && (u.Role == UserRole.Mechanic || u.Role == UserRole.Receptionist));
+            var staff = db.Users.FirstOrDefault(u => u.Id == id && (u.Role == UserRole.Mechanic || u.Role == UserRole.Receptionist || u.Role == UserRole.Driver));
             if (staff == null) return HttpNotFound();
 
-            if (!EmailPolicy.IsAllowedDomain(email))
+            if (!EmailPolicy.IsAllowedStaffDomain(email))
             {
-                TempData["Error"] = EmailPolicy.RequirementsText;
+                TempData["Error"] = EmailPolicy.StaffRequirementsText;
                 return RedirectToAction("EditStaff", new { id = id });
             }
 
@@ -295,8 +364,11 @@ namespace GarageJobCards.Controllers
             staff.FullName = fullName;
             staff.Email = email;
             staff.Phone = phone;
-            if (role == UserRole.Mechanic || role == UserRole.Receptionist)
+            if (role == UserRole.Mechanic || role == UserRole.Receptionist || role == UserRole.Driver)
                 staff.Role = role;
+
+            if (photoFile != null && photoFile.ContentLength > 0)
+                staff.ProfilePhotoUrl = SaveStaffPhoto(photoFile);
 
             db.SaveChanges();
 
@@ -304,13 +376,29 @@ namespace GarageJobCards.Controllers
             return RedirectToAction("ManageAccounts");
         }
 
-        // POST: /User/ResetStaffPassword/5 - Manager sets a new password directly, no email needed.
+ // Saves an uploaded staff photo under ~/Content/images/staff/ with a
+        // unique filename, and returns the relative URL to store.
+        // (Azure Blob Storage migration paused for now - reverting to local
+        // disk so the app compiles and works without needing Azure set up.)
+        private string SaveStaffPhoto(HttpPostedFileBase file)
+        {
+            var folder = Server.MapPath("~/Content/images/staff");
+            if (!Directory.Exists(folder))
+                Directory.CreateDirectory(folder);
+
+            var extension = Path.GetExtension(file.FileName);
+            var fileName = Guid.NewGuid().ToString("N") + extension;
+            file.SaveAs(Path.Combine(folder, fileName));
+
+            return "/Content/images/staff/" + fileName;
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireRole(UserRole.Manager)]
         public ActionResult ResetStaffPassword(int id, string newPassword)
         {
-            var staff = db.Users.FirstOrDefault(u => u.Id == id && (u.Role == UserRole.Mechanic || u.Role == UserRole.Receptionist));
+            var staff = db.Users.FirstOrDefault(u => u.Id == id && (u.Role == UserRole.Mechanic || u.Role == UserRole.Receptionist || u.Role == UserRole.Driver));
             if (staff == null) return HttpNotFound();
 
             if (!PasswordPolicy.IsStrong(newPassword))
@@ -329,13 +417,12 @@ namespace GarageJobCards.Controllers
             return RedirectToAction("EditStaff", new { id = id });
         }
 
-        // POST: /User/Activate/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireRole(UserRole.Manager)]
         public ActionResult Activate(int id)
         {
-            var staff = db.Users.FirstOrDefault(u => u.Id == id && (u.Role == UserRole.Mechanic || u.Role == UserRole.Receptionist));
+            var staff = db.Users.FirstOrDefault(u => u.Id == id && (u.Role == UserRole.Mechanic || u.Role == UserRole.Receptionist || u.Role == UserRole.Driver));
             if (staff == null) return HttpNotFound();
 
             staff.IsActive = true;
@@ -345,13 +432,12 @@ namespace GarageJobCards.Controllers
             return RedirectToAction("ManageAccounts");
         }
 
-        // POST: /User/Deactivate/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireRole(UserRole.Manager)]
         public ActionResult Deactivate(int id)
         {
-            var staff = db.Users.FirstOrDefault(u => u.Id == id && (u.Role == UserRole.Mechanic || u.Role == UserRole.Receptionist));
+            var staff = db.Users.FirstOrDefault(u => u.Id == id && (u.Role == UserRole.Mechanic || u.Role == UserRole.Receptionist || u.Role == UserRole.Driver));
             if (staff == null) return HttpNotFound();
 
             if (staff.Id == CurrentUserId)
@@ -369,7 +455,6 @@ namespace GarageJobCards.Controllers
 
         // ---------- Manager: review pending change requests ----------
 
-        // GET: /User/ChangeRequests
         [RequireRole(UserRole.Manager)]
         public ActionResult ChangeRequests()
         {
@@ -382,7 +467,6 @@ namespace GarageJobCards.Controllers
             return View(requests);
         }
 
-        // POST: /User/ApproveChangeRequest/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireRole(UserRole.Manager)]
@@ -407,7 +491,6 @@ namespace GarageJobCards.Controllers
             return RedirectToAction("ChangeRequests");
         }
 
-        // POST: /User/RejectChangeRequest/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireRole(UserRole.Manager)]

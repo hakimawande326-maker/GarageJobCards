@@ -1,0 +1,177 @@
+@using System.Linq
+@{
+    ViewData["Title"] = "New Sale";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    var products = ViewBag.Products as System.Collections.Generic.List<GarageJobCards.Models.Product>;
+    var customers = ViewBag.Customers as System.Collections.Generic.List<GarageJobCards.Models.User>;
+}
+
+<div class="page-head">
+    <h1>New Sale</h1>
+    <p>Sell parts over the counter - to an existing customer or a walk-in.</p>
+</div>
+
+@if (TempData["Error"] != null)
+{
+    <p style="color:#ff6b6b; margin-bottom:20px;">@TempData["Error"]</p>
+}
+
+<div class="form-card" style="max-width:900px;">
+    @using (Html.BeginForm("Purchase", "Product", FormMethod.Post))
+    {
+        @Html.AntiForgeryToken()
+
+        <div class="form-row">
+            <label for="customerId">Customer (leave blank for a walk-in sale)</label>
+            <select name="customerId" id="customerId" onchange="toggleWalkIn()">
+                <option value="">-- Walk-in customer --</option>
+                @if (customers != null)
+                {
+                    foreach (var c in customers)
+                    {
+                        @Html.Raw("<option value=\"" + c.Id + "\">" + c.FullName + " (" + c.Phone + ")</option>")
+                    }
+                }
+            </select>
+        </div>
+
+        <div id="walkInFields" class="form-grid-2">
+            <div class="form-row">
+                <label for="walkInName">Walk-in name</label>
+                <input type="text" name="walkInName" id="walkInName" maxlength="80" />
+            </div>
+            <div class="form-row">
+                <label for="walkInPhone">Walk-in phone</label>
+                <input type="tel" name="walkInPhone" id="walkInPhone" maxlength="10" placeholder="0721234567" />
+            </div>
+        </div>
+
+        <div style="border-top:1px dashed var(--steel-dim); padding-top:16px; margin-top:6px;">
+            <div class="board-search" style="max-width:none; margin-bottom:16px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="productSearch" placeholder="Search products..." autocomplete="off" />
+            </div>
+
+            <div style="max-height:420px; overflow-y:auto; border:1px solid var(--steel-dim); border-radius:6px;">
+            <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                <thead>
+                    <tr style="text-align:left; font-family:'Oswald',sans-serif; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--steel); border-bottom:1px solid var(--steel-dim); position:sticky; top:0; background:var(--panel);">
+                        <th style="padding:8px 10px;">Product</th>
+                        <th style="padding:8px 10px;">Category</th>
+                        <th style="padding:8px 10px;">Price</th>
+                        <th style="padding:8px 10px;">In Stock</th>
+                        <th style="padding:8px 10px; width:90px;">Qty</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (products != null)
+                    {
+                        foreach (var p in products)
+                        {
+                            <tr class="product-row" data-search="@((p.Name + " " + GarageJobCards.Models.Product.CategoryLabel(p.Category)).ToLower())" style="border-bottom:1px solid rgba(15,23,42,0.06);">
+                                <td style="padding:8px 10px;">
+                                    @p.Name
+                                    <input type="hidden" name="productId" value="@p.Id" />
+                                </td>
+                                <td style="padding:8px 10px; color:var(--paper-dim);">@GarageJobCards.Models.Product.CategoryLabel(p.Category)</td>
+                                <td style="padding:8px 10px;" class="unit-price" data-price="@p.Price.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)">R@(p.Price.ToString("N2", System.Globalization.CultureInfo.InvariantCulture))</td>
+                                <td style="padding:8px 10px; color:var(--paper-dim);">@p.StockQuantity</td>
+                                <td style="padding:8px 10px;">
+                                    <input type="number" name="quantity" class="qty-input" min="0" max="@p.StockQuantity" value="0" style="width:70px; padding:6px 8px;" oninput="updateTotal()" onchange="updateTotal()" />
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; margin-top:20px; padding-top:16px; border-top:1px solid var(--steel-dim);">
+            <table style="font-family:'Space Mono',monospace; font-size:13px;">
+                <tr>
+                    <td style="padding:3px 24px 3px 0; color:var(--steel); text-transform:uppercase; letter-spacing:0.5px;">Subtotal</td>
+                    <td style="padding:3px 0; text-align:right;" id="subtotalDisplay">R0.00</td>
+                </tr>
+                <tr>
+                    <td style="padding:3px 24px 3px 0; color:var(--steel); text-transform:uppercase; letter-spacing:0.5px;">VAT (15%)</td>
+                    <td style="padding:3px 0; text-align:right;" id="vatDisplay">R0.00</td>
+                </tr>
+                <tr>
+                    <td style="padding-top:10px; font-family:'Anton',sans-serif; font-size:16px; text-transform:uppercase;">Total</td>
+                    <td style="padding-top:10px; text-align:right; font-family:'Anton',sans-serif; font-size:22px;" id="totalDisplay">R0.00</td>
+                </tr>
+            </table>
+        </div>
+
+        <div style="border-top:1px dashed var(--steel-dim); padding-top:16px; margin-top:16px;">
+            <label style="display:block; margin-bottom:10px;">Payment method</label>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
+                <label class="btn-ghost" style="display:flex; align-items:center; gap:8px; padding:10px 16px; font-size:13px; cursor:pointer; font-weight:400; text-transform:none; letter-spacing:normal;">
+                    <input type="radio" name="paymentMethod" value="Cash" checked="checked" onchange="togglePaymentFields()" /> Cash
+                </label>
+                <label class="btn-ghost" style="display:flex; align-items:center; gap:8px; padding:10px 16px; font-size:13px; cursor:pointer; font-weight:400; text-transform:none; letter-spacing:normal;">
+                    <input type="radio" name="paymentMethod" value="Card" onchange="togglePaymentFields()" /> Card
+                </label>
+                <label class="btn-ghost" style="display:flex; align-items:center; gap:8px; padding:10px 16px; font-size:13px; cursor:pointer; font-weight:400; text-transform:none; letter-spacing:normal;">
+                    <input type="radio" name="paymentMethod" value="Eft" onchange="togglePaymentFields()" /> EFT
+                </label>
+            </div>
+
+            <div id="cashFields" class="form-grid-2">
+                <div class="form-row">
+                    <label for="amountTendered">Amount tendered (R)</label>
+                    <input type="number" name="amountTendered" id="amountTendered" step="0.01" min="0" oninput="updateTotal()" />
+                </div>
+                <div class="form-row">
+                    <label>Change due</label>
+                    <div id="changeDisplay" style="padding:12px 14px; font-family:'Anton',sans-serif; font-size:18px; color:var(--ice);">R0.00</div>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="submit-btn" style="margin-top:16px;">Complete Sale</button>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        function toggleWalkIn() {
+            var isCustomer = document.getElementById("customerId").value !== "";
+            document.getElementById("walkInFields").style.display = isCustomer ? "none" : "grid";
+        }
+        toggleWalkIn();
+
+        function togglePaymentFields() {
+            var isCash = document.querySelector('input[name="paymentMethod"]:checked').value === "Cash";
+            document.getElementById("cashFields").style.display = isCash ? "grid" : "none";
+        }
+        togglePaymentFields();
+
+        document.getElementById("productSearch").addEventListener("input", function () {
+            var query = this.value.trim().toLowerCase();
+            document.querySelectorAll(".product-row").forEach(function (row) {
+                row.style.display = (!query || row.getAttribute("data-search").indexOf(query) !== -1) ? "" : "none";
+            });
+        });
+
+        function updateTotal() {
+            var subtotal = 0;
+            document.querySelectorAll(".product-row").forEach(function (row) {
+                var price = parseFloat(row.querySelector(".unit-price").getAttribute("data-price"));
+                var qty = parseInt(row.querySelector(".qty-input").value) || 0;
+                subtotal += price * qty;
+            });
+            var vat = subtotal * 0.15;
+            var total = subtotal + vat;
+            document.getElementById("subtotalDisplay").textContent = "R" + subtotal.toFixed(2);
+            document.getElementById("vatDisplay").textContent = "R" + vat.toFixed(2);
+            document.getElementById("totalDisplay").textContent = "R" + total.toFixed(2);
+
+            var tendered = parseFloat(document.getElementById("amountTendered").value) || 0;
+            var change = tendered - total;
+            document.getElementById("changeDisplay").textContent = "R" + (change > 0 ? change.toFixed(2) : "0.00");
+        }
+    </script>
+
+}

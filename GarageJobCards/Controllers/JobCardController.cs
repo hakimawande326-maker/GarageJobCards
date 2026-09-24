@@ -11,56 +11,6 @@ namespace GarageJobCards.Controllers
     {
         private readonly GarageContext db = new GarageContext();
 
-        // ---------- Receptionist / Manager: create a job card ----------
-
-        [RequireRole(UserRole.Receptionist, UserRole.Manager)]
-        public ActionResult Create(int? vehicleId)
-        {
-            ViewBag.Vehicles = db.Vehicles.Include(v => v.Owner).OrderBy(v => v.PlateNumber).ToList();
-            var model = new JobCard();
-            if (vehicleId.HasValue) model.VehicleId = vehicleId.Value;
-            return View(model);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [RequireRole(UserRole.Receptionist, UserRole.Manager)]
-        public ActionResult Create(JobCard model)
-        {
-            ModelState.Remove("Vehicle");
-            ModelState.Remove("Customer");
-            ModelState.Remove("CreatedByUser");
-            ModelState.Remove("AssignedMechanic");
-            ModelState.Remove("ManagerSignedBy");
-
-            var vehicle = db.Vehicles.Find(model.VehicleId);
-            if (vehicle == null)
-                ModelState.AddModelError("VehicleId", "Select a vehicle.");
-
-            if (!ModelState.IsValid)
-            {
-                ViewBag.Vehicles = db.Vehicles.Include(v => v.Owner).OrderBy(v => v.PlateNumber).ToList();
-                return View(model);
-            }
-
-            model.CustomerId = vehicle.OwnerId;
-            model.CreatedByUserId = CurrentUserId.Value;
-            model.Status = JobStatus.Booked;
-            model.DateBookedUtc = DateTime.UtcNow;
-            model.StatusChangedUtc = DateTime.UtcNow;
-
-            db.JobCards.Add(model);
-            db.SaveChanges();
-
-            model.JobNumber = "JC-" + model.Id.ToString("D6");
-            db.SaveChanges();
-
-            TempData["Success"] = "Job card " + model.JobNumber + " created.";
-            return RedirectToAction("Details", new { id = model.Id });
-        }
-
-        // ---------- Receptionist / Manager: kanban board ----------
-
         [RequireRole(UserRole.Receptionist, UserRole.Manager)]
         public ActionResult Index()
         {
@@ -76,8 +26,6 @@ namespace GarageJobCards.Controllers
 
             return View(jobs);
         }
-
-        // ---------- Manager: assign a mechanic ----------
 
         [RequireRole(UserRole.Manager)]
         public ActionResult AssignMechanic(int id)
@@ -121,8 +69,6 @@ namespace GarageJobCards.Controllers
             return RedirectToAction("Index");
         }
 
-        // ---------- Mechanic: view assigned jobs ----------
-
         [RequireRole(UserRole.Mechanic)]
         public ActionResult MyJobs()
         {
@@ -138,10 +84,8 @@ namespace GarageJobCards.Controllers
             return View(jobs);
         }
 
-        // ---------- Status update (drag-and-drop board + mechanic's own page) ----------
-
         [HttpPost]
-        [RequireRole] // any logged-in user; fine-grained check below
+        [RequireRole]
         public JsonResult UpdateStatus(int id, JobStatus status)
         {
             var job = db.JobCards.Find(id);
@@ -163,8 +107,6 @@ namespace GarageJobCards.Controllers
             return Json(new { success = true, status = job.Status.ToString(), label = JobCard.StatusLabel(job.Status) });
         }
 
-        // ---------- Mechanic: save time estimate + quoted amount ----------
-
         [HttpPost]
         [RequireRole(UserRole.Mechanic)]
         public JsonResult UpdateEstimate(int id, string hours, string amount)
@@ -176,11 +118,6 @@ namespace GarageJobCards.Controllers
             if (job.AssignedMechanicId != CurrentUserId)
                 return Json(new { success = false, message = "This job isn't assigned to you." });
 
-            // Parse explicitly with InvariantCulture - HTML number inputs always send
-            // period-decimal values (e.g. "150.50") regardless of the browser's
-            // locale, but ASP.NET's automatic model binding for decimal parameters
-            // uses the SERVER's regional settings, which can silently fail to parse
-            // a period-decimal value if that culture expects a comma instead.
             decimal hoursValue, amountValue;
             bool hasHours = decimal.TryParse(hours, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out hoursValue);
             bool hasAmount = decimal.TryParse(amount, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out amountValue);
@@ -211,8 +148,6 @@ namespace GarageJobCards.Controllers
             });
         }
 
-        // ---------- Manager: sign off and release for pickup ----------
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireRole(UserRole.Manager)]
@@ -238,8 +173,6 @@ namespace GarageJobCards.Controllers
             return RedirectToAction("Details", new { id = id });
         }
 
-        // ---------- Printable job card / details ----------
-
         [RequireRole]
         public ActionResult Details(int id)
         {
@@ -262,8 +195,6 @@ namespace GarageJobCards.Controllers
 
             return View(job);
         }
-
-        // ---------- Quotation - generated as soon as a Manager signs off ----------
 
         [RequireRole]
         public ActionResult Quotation(int id)
@@ -294,7 +225,7 @@ namespace GarageJobCards.Controllers
             return View(job);
         }
 
-        // ---------- Customer: view their own jobs + approve quotes ----------
+        // ---------- Customer: view their own jobs, approve/decline quotes ----------
 
         [RequireRole(UserRole.Customer)]
         public ActionResult MyBookings()
@@ -309,21 +240,64 @@ namespace GarageJobCards.Controllers
             return View(jobs);
         }
 
+        // POST: /JobCard/Approve/5 - customer accepts the quote and signs.
+        // A signature is mandatory - this is the customer's formal consent
+        // to proceed with the repair at the quoted price, before any work
+        // beyond diagnostics happens.
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireRole(UserRole.Customer)]
-        public ActionResult Approve(int id)
+        public ActionResult Approve(int id, string signatureDataUrl)
         {
             var job = db.JobCards.FirstOrDefault(j => j.Id == id && j.CustomerId == CurrentUserId);
             if (job == null) return HttpNotFound();
+
+            if (string.IsNullOrWhiteSpace(signatureDataUrl))
+            {
+                TempData["Error"] = "Please sign before approving the quote.";
+                return RedirectToAction("MyBookings");
+            }
 
             if (job.Status == JobStatus.AwaitingApproval)
             {
                 job.CustomerApproved = true;
                 job.ApprovedAtUtc = DateTime.UtcNow;
+                job.CustomerSignatureImageDataUrl = signatureDataUrl;
                 job.Status = JobStatus.InProgress;
                 job.StatusChangedUtc = DateTime.UtcNow;
                 db.SaveChanges();
+                TempData["Success"] = "Quote approved - work will begin shortly.";
+            }
+
+            return RedirectToAction("MyBookings");
+        }
+
+        // POST: /JobCard/Decline/5 - customer declines the quote and signs.
+        // Also requires a signature, and an optional reason for our records.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireRole(UserRole.Customer)]
+        public ActionResult Decline(int id, string signatureDataUrl, string declineReason)
+        {
+            var job = db.JobCards.FirstOrDefault(j => j.Id == id && j.CustomerId == CurrentUserId);
+            if (job == null) return HttpNotFound();
+
+            if (string.IsNullOrWhiteSpace(signatureDataUrl))
+            {
+                TempData["Error"] = "Please sign before declining the quote.";
+                return RedirectToAction("MyBookings");
+            }
+
+            if (job.Status == JobStatus.AwaitingApproval)
+            {
+                job.CustomerDeclined = true;
+                job.DeclinedAtUtc = DateTime.UtcNow;
+                job.DeclineReason = declineReason;
+                job.CustomerSignatureImageDataUrl = signatureDataUrl;
+                job.Status = JobStatus.Cancelled;
+                job.StatusChangedUtc = DateTime.UtcNow;
+                db.SaveChanges();
+                TempData["Success"] = "Quote declined. The vehicle can be collected without further work.";
             }
 
             return RedirectToAction("MyBookings");

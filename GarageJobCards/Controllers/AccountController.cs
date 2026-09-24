@@ -9,11 +9,8 @@ namespace GarageJobCards.Controllers
     public class AccountController : BaseController
     {
         private readonly GarageContext db = new GarageContext();
-
-        // How long an OTP stays valid after it's sent.
         private static readonly TimeSpan OtpLifetime = TimeSpan.FromSeconds(110); // 1:50
 
-        // GET: /Account/Login
         public ActionResult Login(string returnUrl, string role)
         {
             ViewBag.ReturnUrl = returnUrl;
@@ -21,7 +18,6 @@ namespace GarageJobCards.Controllers
             return View();
         }
 
-        // POST: /Account/Login
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult Login(string email, string password, string returnUrl, string role)
@@ -62,21 +58,21 @@ namespace GarageJobCards.Controllers
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                 return Redirect(returnUrl);
 
-            // Role-based landing page
-            switch (user.Role)
+     switch (user.Role)
             {
                 case UserRole.Mechanic:
                     return RedirectToAction("MyJobs", "JobCard");
                 case UserRole.Customer:
                     return RedirectToAction("MyBookings", "JobCard");
+                case UserRole.Driver:
+                    return RedirectToAction("MyDeliveries", "Delivery");
                 case UserRole.Manager:
                     return RedirectToAction("Index", "Analytics");
-                default: // Receptionist
+                default:
                     return RedirectToAction("Index", "JobCard");
             }
         }
 
-        // GET: /Account/Logout
         public ActionResult Logout()
         {
             Session.Clear();
@@ -84,7 +80,6 @@ namespace GarageJobCards.Controllers
             return RedirectToAction("Index", "Home");
         }
 
-        // GET: /Account/AccessDenied
         public ActionResult AccessDenied()
         {
             return View();
@@ -92,13 +87,11 @@ namespace GarageJobCards.Controllers
 
         // ---------- Forgot password via SMS OTP - works for every role ----------
 
-        // GET: /Account/ForgotPassword
         public ActionResult ForgotPassword()
         {
             return View();
         }
 
-        // POST: /Account/ForgotPassword
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult ForgotPassword(string email, string phone)
@@ -126,19 +119,13 @@ namespace GarageJobCards.Controllers
             catch (Exception ex)
             {
                 System.Diagnostics.Trace.TraceError("OTP SMS failed: " + ex.Message);
-                // TEMPORARY: show the real error so we can diagnose the SMS
-                // problem. Remove this ViewBag.DebugError line once OTPs are
-                // confirmed arriving reliably.
                 ViewBag.Error = "Couldn't send the SMS right now - please try again shortly.";
-                ViewBag.DebugError = ex.ToString();
                 return View();
             }
 
-            TempData["DebugOtp"] = otp; // TEMPORARY - remove once SMS delivery is confirmed working
             return RedirectToAction("VerifyOtp", new { email = email });
         }
 
-        // GET: /Account/VerifyOtp?email=...
         public ActionResult VerifyOtp(string email)
         {
             var user = db.Users.FirstOrDefault(u => u.Email == email);
@@ -150,11 +137,9 @@ namespace GarageJobCards.Controllers
             // so the countdown timer matches the server precisely instead of
             // guessing 110 seconds from whenever the page happens to load.
             ViewBag.ExpiryEpochMillis = ToEpochMillis(user.OtpExpiryUtc.Value);
-            ViewBag.DebugOtp = TempData["DebugOtp"]; // TEMPORARY - remove once SMS delivery is confirmed working
             return View();
         }
 
-        // POST: /Account/VerifyOtp
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult VerifyOtp(string email, string otpCode, string newPassword, string confirmPassword)

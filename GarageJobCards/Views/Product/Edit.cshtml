@@ -1,0 +1,94 @@
+@model GarageJobCards.Models.Product
+@{
+    ViewData["Title"] = "Edit Product";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="page-head" style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px;">
+    <div>
+        <h1>Edit Product</h1>
+        <p>@Model.Name</p>
+    </div>
+    @using (Html.BeginForm("Deactivate", "Product", new { id = Model.Id }, FormMethod.Post, new { onsubmit = "return confirm('Remove this product from the catalog?');" }))
+    {
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn-ghost" style="color:#ff6b6b; border-color:#ff6b6b;">Remove from Catalog</button>
+    }
+</div>
+
+<div class="form-card">
+    @using (Html.BeginForm("Edit", "Product", new { id = Model.Id }, FormMethod.Post, new { enctype = "multipart/form-data" }))
+    {
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary(true, "", new { @class = "validation-summary-errors" })
+
+        <div class="form-row">
+            @Html.LabelFor(m => m.Name)
+            @Html.TextBoxFor(m => m.Name, new { maxlength = 100 })
+            @Html.ValidationMessageFor(m => m.Name)
+        </div>
+
+        <div class="form-row">
+            <label for="Category">Category</label>
+            <select name="Category" id="Category">
+                @foreach (GarageJobCards.Models.ProductCategory cat in Enum.GetValues(typeof(GarageJobCards.Models.ProductCategory)))
+                {
+                    var selected = Model.Category == cat ? "selected=\"selected\"" : "";
+                    @Html.Raw("<option value=\"" + (int)cat + "\" " + selected + ">" + GarageJobCards.Models.Product.CategoryLabel(cat) + "</option>")
+                }
+            </select>
+        </div>
+
+        <div class="form-row">
+            @Html.LabelFor(m => m.Description)
+            @Html.TextAreaFor(m => m.Description, new { rows = 3, maxlength = 500 })
+            @Html.ValidationMessageFor(m => m.Description)
+        </div>
+
+        <div class="form-row">
+            <label for="imageFile">Product photo</label>
+            @if (!string.IsNullOrEmpty(Model.ImageUrl))
+            {
+                <img src="@Url.Content("~" + Model.ImageUrl)" alt="@Model.Name" style="width:120px; height:90px; object-fit:cover; border-radius:6px; margin-bottom:10px; display:block;" />
+            }
+            <input type="file" name="imageFile" id="imageFile" accept="image/*" />
+            <span style="color:var(--steel); font-size:11px; font-family:'Space Mono',monospace; display:block; margin-top:6px;">
+                Choose a new file to replace the current photo, or leave blank to keep it.
+            </span>
+        </div>
+
+        <div class="form-grid-2">
+            <div class="form-row">
+                @Html.LabelFor(m => m.Price)
+                @Html.TextBoxFor(m => m.Price, new { type = "number", step = "0.01", min = 0.01 })
+                @Html.ValidationMessageFor(m => m.Price)
+            </div>
+            <div class="form-row">
+                @Html.LabelFor(m => m.StockQuantity)
+                @Html.TextBoxFor(m => m.StockQuantity, new { type = "number", min = 0 })
+                @Html.ValidationMessageFor(m => m.StockQuantity)
+            </div>
+        </div>
+
+        <div class="form-row">
+            @Html.LabelFor(m => m.PartNumber)
+            @Html.TextBoxFor(m => m.PartNumber, new { maxlength = 40 })
+            @Html.ValidationMessageFor(m => m.PartNumber)
+        </div>
+
+        <div class="form-grid-2" style="border-top:1px dashed var(--steel-dim); padding-top:20px; margin-top:6px;">
+            <div class="form-row">
+                @Html.LabelFor(m => m.CompatibleMake)
+                @Html.TextBoxFor(m => m.CompatibleMake, new { maxlength = 40, placeholder = "e.g. Toyota" })
+                @Html.ValidationMessageFor(m => m.CompatibleMake)
+            </div>
+            <div class="form-row">
+                @Html.LabelFor(m => m.CompatibleModel)
+                @Html.TextBoxFor(m => m.CompatibleModel, new { maxlength = 40, placeholder = "e.g. Hilux" })
+                @Html.ValidationMessageFor(m => m.CompatibleModel)
+            </div>
+        </div>
+
+        <button type="submit" class="submit-btn">Save Changes</button>
+    }
+</div>

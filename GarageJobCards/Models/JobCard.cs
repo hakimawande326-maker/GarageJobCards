@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace GarageJobCards.Models
 {
@@ -25,13 +26,13 @@ namespace GarageJobCards.Models
         public int VehicleId { get; set; }
         public virtual Vehicle Vehicle { get; set; }
 
-        public int CustomerId { get; set; } // FK -> User.Id (Role = Customer)
+        public int CustomerId { get; set; }
         public virtual User Customer { get; set; }
 
-        public int CreatedByUserId { get; set; } // FK -> User.Id (Role = Receptionist)
+        public int CreatedByUserId { get; set; }
         public virtual User CreatedByUser { get; set; }
 
-        public int? AssignedMechanicId { get; set; } // FK -> User.Id (Role = Mechanic)
+        public int? AssignedMechanicId { get; set; }
         public virtual User AssignedMechanic { get; set; }
 
         [Required(ErrorMessage = "Describe what the customer needs done.")]
@@ -44,21 +45,32 @@ namespace GarageJobCards.Models
         public decimal? EstimateAmount { get; set; }
 
         // Set by the mechanic once they've assessed the job - how many hours
-        // of work it'll take from the point they start.
+        // of work it'll take from the point the customer approves the quote.
         [Range(0.1, 500, ErrorMessage = "Estimated hours must be between 0.1 and 500.")]
         [Display(Name = "Estimated repair time (hours)")]
         public decimal? EstimatedHours { get; set; }
 
         public JobStatus Status { get; set; }
 
-        [Display(Name = "Internal notes")]
         [StringLength(1000)]
         public string Notes { get; set; }
 
+        // ---------- Customer's response to the quote ----------
+        // A customer must explicitly approve OR decline a quote before work
+        // (beyond diagnostics) proceeds - both require a drawn signature,
+        // same mechanism as the Manager's sign-off.
         public bool CustomerApproved { get; set; }
         public DateTime? ApprovedAtUtc { get; set; }
 
-        // Set when a Manager signs off the job as ready for pickup.
+        public bool CustomerDeclined { get; set; }
+        public DateTime? DeclinedAtUtc { get; set; }
+        [StringLength(500)]
+        public string DeclineReason { get; set; }
+
+        // Base64 PNG data URL of the customer's drawn signature, captured at
+        // the moment they approve or decline the quote.
+        public string CustomerSignatureImageDataUrl { get; set; }
+
         public int? ManagerSignedByUserId { get; set; }
         public virtual User ManagerSignedBy { get; set; }
         public DateTime? SignedAtUtc { get; set; }
@@ -67,40 +79,6 @@ namespace GarageJobCards.Models
         public DateTime? DateCompletedUtc { get; set; }
         public DateTime StatusChangedUtc { get; set; }
 
-        public JobCard()
-        {
-            DateBookedUtc = DateTime.UtcNow;
-            StatusChangedUtc = DateTime.UtcNow;
-            Status = JobStatus.Booked;
-        }
-
-        public static readonly JobStatus[] TimelineOrder =
-        {
-            JobStatus.Booked,
-            JobStatus.DiagnosticsInProgress,
-            JobStatus.AwaitingApproval,
-            JobStatus.InProgress,
-            JobStatus.QualityCheck,
-            JobStatus.ReadyForPickup,
-            JobStatus.Completed
-        };
-
-        // Estimated completion = whenever work actually started (last status
-        // change) plus however many hours the mechanic estimated. Returns
-        // null until a mechanic has entered an estimate.
-        public DateTime? EstimatedCompletionUtc
-        {
-            get
-            {
-                if (!EstimatedHours.HasValue) return null;
-                var startPoint = Status == JobStatus.InProgress || Status == JobStatus.QualityCheck
-                    ? StatusChangedUtc
-                    : DateTime.UtcNow;
-                return startPoint.AddHours((double)EstimatedHours.Value);
-            }
-        }
-
-        // South African VAT at 15% - EstimateAmount is treated as the
         // Quotation total: labor/parts + a flat admin fee, then VAT applied
         // on top of both (the admin fee is a taxable service charge too).
         public const decimal AdminFee = 25m;
@@ -130,16 +108,40 @@ namespace GarageJobCards.Models
             get { return "QN-" + Id.ToString("D6"); }
         }
 
+        // Estimated finish time: work officially starts once the customer
+        // approves the quote, so completion = approval time + quoted hours.
+        // Used throughout the app to show customers a concrete "ready by"
+        // time instead of a vague status, and helps staff plan workload.
+        public DateTime? EstimatedCompletionUtc
+        {
+            get
+            {
+                if (!EstimatedHours.HasValue || !ApprovedAtUtc.HasValue) return null;
+                return ApprovedAtUtc.Value.AddHours((double)EstimatedHours.Value);
+            }
+        }
+
+        public static readonly JobStatus[] TimelineOrder = new[]
+        {
+            JobStatus.Booked,
+            JobStatus.DiagnosticsInProgress,
+            JobStatus.AwaitingApproval,
+            JobStatus.InProgress,
+            JobStatus.QualityCheck,
+            JobStatus.ReadyForPickup,
+            JobStatus.Completed
+        };
+
         public static string StatusLabel(JobStatus status)
         {
             switch (status)
             {
                 case JobStatus.Booked: return "Booked";
-                case JobStatus.DiagnosticsInProgress: return "Diagnostics In Progress";
+                case JobStatus.DiagnosticsInProgress: return "Diagnostics";
                 case JobStatus.AwaitingApproval: return "Awaiting Approval";
-                case JobStatus.InProgress: return "Work In Progress";
+                case JobStatus.InProgress: return "In Progress";
                 case JobStatus.QualityCheck: return "Quality Check";
-                case JobStatus.ReadyForPickup: return "Ready For Pickup";
+                case JobStatus.ReadyForPickup: return "Ready for Pickup";
                 case JobStatus.Completed: return "Completed";
                 case JobStatus.Cancelled: return "Cancelled";
                 default: return status.ToString();

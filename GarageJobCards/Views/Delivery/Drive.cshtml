@@ -1,0 +1,112 @@
+@model GarageJobCards.Models.Delivery
+@{
+    ViewData["Title"] = "Delivering " + Model.DeliveryNumber;
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="page-head">
+    <h1>@Model.DeliveryNumber</h1>
+    <p>Tap "Update My Location" whenever it's safe to do so (before you set off, at stops, or when you're close) - the customer's map updates right after you tap it.</p>
+</div>
+
+<div class="form-card" style="max-width:520px;">
+    <div style="margin-bottom:20px;">
+        <div style="color:var(--steel); font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:1px;">Deliver to</div>
+        <div style="font-size:16px; margin-top:4px;">@Model.Purchase.CustomerDisplayName</div>
+        <div style="color:var(--paper-dim); font-size:14px; margin-top:2px;">@Model.DeliveryAddress</div>
+    </div>
+
+    <div id="statusBox" style="background:var(--oil); border:1px solid var(--steel-dim); border-radius:8px; padding:18px; text-align:center; margin-bottom:20px;">
+        <div id="statusIcon" style="font-size:28px; margin-bottom:8px;">&#128205;</div>
+        <div id="statusText" style="font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:13px; letter-spacing:0.5px;">Location not shared yet</div>
+        <div id="lastSent" style="color:var(--steel); font-family:'Space Mono',monospace; font-size:11px; margin-top:6px;"></div>
+    </div>
+
+    <button type="button" id="updateLocationBtn" class="submit-btn" style="width:100%; margin-bottom:14px;" onclick="updateLocation()">Update My Location</button>
+
+    <pre id="debugBox" style="display:none; background:rgba(255,107,107,0.1); border:1px solid #ff6b6b; border-radius:6px; padding:14px; font-size:11px; white-space:pre-wrap; word-break:break-word; color:#ff6b6b; margin-bottom:14px;"></pre>
+
+    @using (Html.BeginForm("MarkDelivered", "Delivery", new { id = Model.Id }, FormMethod.Post, new { onsubmit = "return confirm('Mark this delivery as complete?');" }))
+    {
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn-ghost" style="width:100%;">Mark as Delivered</button>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var deliveryId = @Model.Id;
+            var statusText = document.getElementById("statusText");
+            var statusIcon = document.getElementById("statusIcon");
+            var lastSent = document.getElementById("lastSent");
+            var btn = document.getElementById("updateLocationBtn");
+
+            window.updateLocation = function () {
+                if (!navigator.geolocation) {
+                    statusText.textContent = "Your browser doesn't support location sharing.";
+                    statusIcon.textContent = "\u26A0\uFE0F";
+                    return;
+                }
+
+                btn.disabled = true;
+                btn.textContent = "Getting your location...";
+
+                navigator.geolocation.getCurrentPosition(
+                    function (position) {
+                        var lat = position.coords.latitude;
+                        var lng = position.coords.longitude;
+
+                        fetch("/Delivery/UpdateLocation", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                            body: "id=" + deliveryId + "&lat=" + lat + "&lng=" + lng
+                        })
+                        .then(function (r) {
+                            if (!r.ok) {
+                                // TEMPORARY: show the server's actual raw response
+                                // so we can see the real error, not a generic message.
+                                return r.text().then(function (text) {
+                                    throw new Error("HTTP " + r.status + ": " + text);
+                                });
+                            }
+                            return r.json();
+                        })
+                        .then(function (result) {
+                            btn.disabled = false;
+                            btn.textContent = "Update My Location";
+
+                            if (result.success) {
+                                statusIcon.textContent = "\u2705";
+                                statusText.textContent = "Location shared with customer";
+                                var now = new Date();
+                                lastSent.textContent = "Last sent: " + now.toLocaleTimeString();
+                            } else {
+                                statusText.textContent = "Couldn't save your location - try again.";
+                            }
+                        })
+                        .catch(function (err) {
+                            btn.disabled = false;
+                            btn.textContent = "Update My Location";
+                            statusText.textContent = "Error - see details below.";
+                            var debugBox = document.getElementById("debugBox");
+                            debugBox.style.display = "block";
+                            debugBox.textContent = err.message || String(err);
+                        });
+                    },
+                    function (err) {
+                        btn.disabled = false;
+                        btn.textContent = "Update My Location";
+                        statusIcon.textContent = "\u26A0\uFE0F";
+                        if (err.code === err.PERMISSION_DENIED) {
+                            statusText.textContent = "Location permission denied - enable it in your browser settings.";
+                        } else {
+                            statusText.textContent = "Couldn't get your location - check your GPS is on.";
+                        }
+                    },
+                    { enableHighAccuracy: true, timeout: 15000 }
+                );
+            };
+        })();
+    </script>
+}

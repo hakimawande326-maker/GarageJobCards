@@ -10,91 +10,101 @@
 </head>
 <body style="background:var(--asphalt); color:var(--paper); font-family:'Inter',sans-serif;">
 
-@{
-    var role = Session["UserRole"] as string;
-    var userName = Session["UserName"] as string;
+    @{
+        var role = Session["UserRole"] as string;
+        var userName = Session["UserName"] as string;
 
-    var currentController = ViewContext.RouteData.Values["controller"] as string ?? "";
-    var currentAction = ViewContext.RouteData.Values["action"] as string ?? "";
+        var currentController = ViewContext.RouteData.Values["controller"] as string ?? "";
+        var currentAction = ViewContext.RouteData.Values["action"] as string ?? "";
 
-    Func<string, string[], string> navClass = (ctrl, acts) =>
-    {
-        bool controllerMatch = string.Equals(currentController, ctrl, StringComparison.OrdinalIgnoreCase);
-        bool actionMatch = acts == null || acts.Any(a => string.Equals(currentAction, a, StringComparison.OrdinalIgnoreCase));
-        return (controllerMatch && actionMatch) ? "active" : "";
-    };
-}
+        Func<string, string[], string> navClass = (ctrl, acts) =>
+        {
+            bool controllerMatch = string.Equals(currentController, ctrl, StringComparison.OrdinalIgnoreCase);
+            bool actionMatch = acts == null || acts.Any(a => string.Equals(currentAction, a, StringComparison.OrdinalIgnoreCase));
+            return (controllerMatch && actionMatch) ? "active" : "";
+        };
+    }
 
-<div class="admin-shell">
-    <nav class="admin-nav no-print">
-        <a href="@Url.Action("Index","Home")" class="brand brand-3d">
- <span class="cube-3d">
- <span class="face front"></span>
- <span class="face back"></span>
- <span class="face right"></span>
- <span class="face left"></span>
- <span class="face top"></span>
- <span class="face bottom"></span>
- </span>
- PHILA'S <span>AUTO</span>
- </a>
+    <div class="admin-shell">
+        <nav class="admin-nav no-print">
+            <a href="@Url.Action("Index","Home")" class="brand brand-3d">
+                <span class="cube-3d">
+                    <span class="face front"></span>
+                    <span class="face back"></span>
+                    <span class="face right"></span>
+                    <span class="face left"></span>
+                    <span class="face top"></span>
+                    <span class="face bottom"></span>
+                </span>
+                PHILA'S <span>AUTO</span>
+            </a>
 
-        <button type="button" class="nav-toggle" id="navToggle" aria-label="Toggle menu">&#9776;</button>
+            <button type="button" class="nav-toggle" id="navToggle" aria-label="Toggle menu">&#9776;</button>
 
-        <div class="links" id="navLinks">
-            <a href="@Url.Action("Index","Home")" class="@navClass("Home", null)">Site</a>
+            <div class="links" id="navLinks">
+                <a href="@Url.Action("Index","Home")" class="@navClass("Home", null)">Site</a>
 
-            @if (role == "Receptionist" || role == "Manager")
-            {
-                <a href="@Url.Action("Index","JobCard")" class="@navClass("JobCard", new[] { "Index" })">Job Board</a>
-                <a href="@Url.Action("Customers","User")" class="@navClass("User", new[] { "Customers", "EditCustomer", "ResetCustomerPassword" })">Customers</a>
-                <a href="@Url.Action("Register","User")" class="@navClass("User", new[] { "Register" })">Register</a>
+                @if (role == "Receptionist" || role == "Manager")
+                {
+                    <a href="@Url.Action("Index","JobCard")" class="@navClass("JobCard", new[] { "Index" })">Job Board</a>
+                    <a href="@Url.Action("Customers","User")" class="@navClass("User", new[] { "Customers", "EditCustomer", "ResetCustomerPassword" })">Customers</a>
+                    <a href="@Url.Action("Register","User")" class="@navClass("User", new[] { "Register" })">Register</a>
+                    <a href="@Url.Action("Index","Product")" class="@navClass("Product", new[] { "Index" })">Parts Shop</a>
+                    <a href="@Url.Action("Purchase","Product")" class="@navClass("Product", new[] { "Purchase", "Receipt" })">New Sale</a>
+                }
+                @if (role == "Manager")
+                {
+                    <a href="@Url.Action("Index","Analytics")" class="@navClass("Analytics", null)">Analytics</a>
+                    <a href="@Url.Action("ManageAccounts","User")" class="@navClass("User", new[] { "ManageAccounts", "EditStaff", "Activate", "Deactivate", "ResetStaffPassword" })">Manage Accounts</a>
+                    <a href="@Url.Action("ChangeRequests","User")" class="@navClass("User", new[] { "ChangeRequests", "ApproveChangeRequest", "RejectChangeRequest" })">Change Requests</a>
+                    <a href="@Url.Action("Index","Signature")" class="@navClass("Signature", null)">My Signature</a>
+                }
+                @if (role == "Mechanic")
+                {
+                    <a href="@Url.Action("MyJobs","JobCard")" class="@navClass("JobCard", new[] { "MyJobs" })">My Jobs</a>
+                }
+                @if (role == "Driver")
+                {
+                    <a href="@Url.Action("MyDeliveries","Delivery")" class="@navClass("Delivery", new[] { "MyDeliveries", "Drive" })">My Deliveries</a>
+                }
+                @if (role == "Customer")
+                {
+                    <a href="@Url.Action("MyBookings","JobCard")" class="@navClass("JobCard", new[] { "MyBookings" })">My Bookings</a>
+                    <a href="@Url.Action("Browse","Product")" class="@navClass("Product", new[] { "Browse" })">Shop Parts</a>
+                    <a href="@Url.Action("Checkout","Product")" class="@navClass("Product", new[] { "Checkout" })">Buy Online</a>
+                    <a href="@Url.Action("MyPurchases","Product")" class="@navClass("Product", new[] { "MyPurchases" })">My Purchases</a>
+                    <a href="@Url.Action("MyOrders","Delivery")" class="@navClass("Delivery", new[] { "MyOrders", "Track" })">My Deliveries</a>
+                }
+
+                @if (role != null)
+                {
+                    <span style="color:var(--steel); font-size:12px;">@userName (@role)</span>
+                    <a href="@Url.Action("Logout","Account")">Log Out</a>
+                }
+                else
+                {
+                    <a href="@Url.Action("Login","Account")">Log In</a>
+                }
+            </div>
+        </nav>
+
+        <main class="admin-main">
+            @RenderBody()
+        </main>
+    </div>
+
+    @RenderSection("Scripts", required: false)
+    <script src="~/Scripts/jobcard.js"></script>
+    <script>
+        (function () {
+            var toggle = document.getElementById("navToggle");
+            var links = document.getElementById("navLinks");
+            if (toggle && links) {
+                toggle.addEventListener("click", function () {
+                    links.classList.toggle("nav-open");
+                });
             }
-            @if (role == "Manager")
-            {
-                <a href="@Url.Action("Index","Analytics")" class="@navClass("Analytics", null)">Analytics</a>
-                <a href="@Url.Action("ManageAccounts","User")" class="@navClass("User", new[] { "ManageAccounts", "EditStaff", "Activate", "Deactivate", "ResetStaffPassword" })">Manage Accounts</a>
-                <a href="@Url.Action("ChangeRequests","User")" class="@navClass("User", new[] { "ChangeRequests", "ApproveChangeRequest", "RejectChangeRequest" })">Change Requests</a>
-                <a href="@Url.Action("Index","Signature")" class="@navClass("Signature", null)">My Signature</a>
-            }
-            @if (role == "Mechanic")
-            {
-                <a href="@Url.Action("MyJobs","JobCard")" class="@navClass("JobCard", new[] { "MyJobs" })">My Jobs</a>
-            }
-            @if (role == "Customer")
-            {
-                <a href="@Url.Action("MyBookings","JobCard")" class="@navClass("JobCard", new[] { "MyBookings" })">My Bookings</a>
-            }
-
-            @if (role != null)
-            {
-                <span style="color:var(--steel); font-size:12px;">@userName (@role)</span>
-                <a href="@Url.Action("Logout","Account")">Log Out</a>
-            }
-            else
-            {
-                <a href="@Url.Action("Login","Account")">Log In</a>
-            }
-        </div>
-    </nav>
-
-    <main class="admin-main">
-        @RenderBody()
-    </main>
-</div>
-
-@RenderSection("Scripts", required: false)
-<script src="~/Scripts/jobcard.js"></script>
-<script>
-    (function () {
-        var toggle = document.getElementById("navToggle");
-        var links = document.getElementById("navLinks");
-        if (toggle && links) {
-            toggle.addEventListener("click", function () {
-                links.classList.toggle("nav-open");
-            });
-        }
-    })();
-</script>
+        })();
+    </script>
 </body>
 </html>

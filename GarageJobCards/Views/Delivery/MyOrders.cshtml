@@ -1,0 +1,43 @@
+@model IEnumerable<GarageJobCards.Models.Delivery>
+@using System.Linq
+@{
+    ViewData["Title"] = "My Deliveries";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="page-head">
+    <h1>My Deliveries</h1>
+    <p>Track parts on their way to you, delivered by our own team.</p>
+</div>
+
+@if (!Model.Any())
+{
+    <p style="color:var(--paper-dim);">No deliveries on file yet.</p>
+}
+
+<div style="display:flex; flex-direction:column; gap:16px;">
+    @foreach (var d in Model)
+    {
+        <div class="form-card" style="max-width:none;">
+            <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+                <h3 style="font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:16px;">@d.DeliveryNumber</h3>
+                <span class="status-badge" style="background:@(d.Status == GarageJobCards.Models.DeliveryStatus.Delivered ? "linear-gradient(135deg, #34b872, #279257)" : d.Status == GarageJobCards.Models.DeliveryStatus.OutForDelivery ? "linear-gradient(135deg, var(--blue), var(--blue-dim))" : "linear-gradient(135deg, #64748b, #4a5568)");">@GarageJobCards.Models.Delivery.StatusLabel(d.Status)</span>
+            </div>
+            <p style="color:var(--paper-dim); font-size:14px; margin-bottom:4px;">Driver: @d.Driver.FullName</p>
+            <p style="color:var(--paper-dim); font-size:13px; margin-bottom:16px;">Delivering to: @d.DeliveryAddress</p>
+
+            @if (d.Status == GarageJobCards.Models.DeliveryStatus.OutForDelivery)
+            {
+                <a href="@Url.Action("Track", new { id = d.Id })" class="submit-btn" style="text-decoration:none; display:inline-block;">Track on Map</a>
+            }
+            else if (d.Status == GarageJobCards.Models.DeliveryStatus.Delivered)
+            {
+                <p style="color:var(--ice); font-size:13px;">Delivered @d.DeliveredAtUtc.Value.ToLocalTime().ToString("dd MMM, HH:mm")</p>
+            }
+            else
+            {
+                <p style="color:var(--paper-dim); font-size:13px;">Being prepared - tracking starts once your driver departs.</p>
+            }
+        </div>
+    }
+</div>

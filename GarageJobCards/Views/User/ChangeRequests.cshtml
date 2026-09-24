@@ -7,7 +7,7 @@
 
 <div class="page-head">
     <h1>Change Requests</h1>
-    <p>Name/email changes a Receptionist submitted for a customer, waiting on your approval.</p>
+    <p>@Model.Count() pending request(s) from Receptionists awaiting your review.</p>
 </div>
 
 @if (TempData["Success"] != null)
@@ -17,39 +17,82 @@
         <span>@TempData["Success"]</span>
     </div>
 }
+@if (TempData["Error"] != null)
+{
+    <p style="color:#ff6b6b; margin-bottom:20px;">@TempData["Error"]</p>
+}
 
 @if (!Model.Any())
 {
-    <p style="color:var(--paper-dim);">No pending change requests.</p>
+    <p style="color:var(--paper-dim);">No pending requests right now.</p>
 }
 
-<div style="display:flex; flex-direction:column; gap:14px;">
+<div style="display:flex; flex-direction:column; gap:16px;">
     @foreach (var r in Model)
     {
+        bool isPasswordReset = r.FieldName == "PasswordReset";
         <div class="form-card" style="max-width:none;">
-            <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; align-items:center;">
+            <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
                 <div>
-                    <div style="font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:15px;">@r.TargetUser.FullName</div>
+                    <h3 style="font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:16px;">
+                        @(isPasswordReset ? "Password Reset Request" : "Change " + r.FieldName)
+                    </h3>
                     <div style="color:var(--paper-dim); font-size:13px; margin-top:4px;">
-                        Change <strong>@r.FieldName</strong> from "@r.OldValue" to "@r.NewValue"
+                        For: @r.TargetUser.FullName (@r.TargetUser.Email)
                     </div>
-                    <div style="color:var(--steel); font-size:12px; font-family:'Space Mono',monospace; margin-top:6px;">
+                    <div style="color:var(--steel); font-family:'Space Mono',monospace; font-size:11px; margin-top:4px;">
                         Requested by @r.RequestedBy.FullName on @r.RequestedAtUtc.ToLocalTime().ToString("dd MMM yyyy, HH:mm")
                     </div>
                 </div>
-                <div style="display:flex; gap:10px;">
-                    @using (Html.BeginForm("ApproveChangeRequest", "User", new { id = r.Id }, FormMethod.Post, new { style = "display:inline-block;" }))
-                    {
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="submit-btn" style="background:#4caf50; padding:10px 20px; font-size:12px;">Approve</button>
-                    }
-                    @using (Html.BeginForm("RejectChangeRequest", "User", new { id = r.Id }, FormMethod.Post, new { style = "display:inline-block;" }))
-                    {
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="btn-ghost" style="padding:10px 20px; font-size:12px; color:#ff6b6b; border-color:#ff6b6b;">Reject</button>
-                    }
-                </div>
             </div>
+
+            @if (isPasswordReset)
+            {
+                <p style="color:var(--paper-dim); font-size:14px; margin-bottom:16px;">
+                    Reason given: <em>@r.NewValue</em>
+                </p>
+
+                using (Html.BeginForm("FulfillPasswordResetRequest", "User", new { requestId = r.Id }, FormMethod.Post, new { style = "max-width:400px;" }))
+                {
+                    @Html.AntiForgeryToken()
+                    <div class="form-row">
+                        <label for="newPassword-@r.Id">New password</label>
+                        <div class="password-wrap">
+                            <input type="password" name="newPassword" id="newPassword-@r.Id" required="required" minlength="8" />
+                            <button type="button" class="password-toggle" data-target="newPassword-@r.Id">Show</button>
+                        </div>
+                        <span style="color:var(--steel); font-size:11px; font-family:'Space Mono',monospace; display:block; margin-top:6px;">
+                            At least 8 characters, with uppercase, lowercase, a number, and a special character.
+                        </span>
+                    </div>
+                    <div style="display:flex; gap:12px;">
+                        <button type="submit" class="submit-btn">Set Password &amp; Approve</button>
+                    </div>
+                }
+
+                using (Html.BeginForm("RejectChangeRequest", "User", new { id = r.Id }, FormMethod.Post, new { style = "display:inline-block; margin-top:10px;" }))
+                {
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn-ghost" style="color:#ff6b6b; border-color:#ff6b6b; padding:8px 16px; font-size:12px;">Reject Request</button>
+                }
+            }
+            else
+            {
+                <p style="font-size:14px; margin-bottom:16px;">
+                    Change <strong>@r.FieldName</strong> from "<span style="color:var(--paper-dim);">@r.OldValue</span>" to "<span style="color:var(--ice);">@r.NewValue</span>"
+                </p>
+
+                using (Html.BeginForm("ApproveChangeRequest", "User", new { id = r.Id }, FormMethod.Post, new { style = "display:inline-block;" }))
+                {
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="submit-btn" style="padding:10px 18px; font-size:12px;">Approve</button>
+                }
+                using (Html.BeginForm("RejectChangeRequest", "User", new { id = r.Id }, FormMethod.Post, new { style = "display:inline-block; margin-left:10px;" }))
+                {
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn-ghost" style="color:#ff6b6b; border-color:#ff6b6b; padding:10px 18px; font-size:12px;">Reject</button>
+                }
+            }
         </div>
     }
 </div>

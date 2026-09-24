@@ -10,6 +10,18 @@
     <p>Live status for every job you've booked with us.</p>
 </div>
 
+@if (TempData["Success"] != null)
+{
+    <div class="alert-success">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span>@TempData["Success"]</span>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <p style="color:#ff6b6b; margin-bottom:20px;">@TempData["Error"]</p>
+}
+
 @if (!Model.Any())
 {
     <p style="color:var(--paper-dim);">No jobs booked yet - give us a call or visit the shop to get started.</p>
@@ -27,6 +39,11 @@
                 <span class="status-badge status-@job.Status">@GarageJobCards.Models.JobCard.StatusLabel(job.Status)</span>
             </div>
             <div style="font-family:'Space Mono',monospace; font-size:12px; color:var(--steel); margin-top:6px;">@job.JobNumber</div>
+
+            @if (job.Status == GarageJobCards.Models.JobStatus.Cancelled && job.CustomerDeclined)
+            {
+                <p style="color:#ff6b6b; font-size:13px; margin-top:14px;">You declined this quote@(string.IsNullOrEmpty(job.DeclineReason) ? "." : ": " + job.DeclineReason)</p>
+            }
 
             @if (job.Status != GarageJobCards.Models.JobStatus.Cancelled)
             {
@@ -46,21 +63,54 @@
             {
                 <p style="color:var(--ice); font-family:'Space Mono',monospace; font-size:13px; margin:14px 0;">
                     Estimated completion: @job.EstimatedCompletionUtc.Value.ToLocalTime().ToString("dd MMM, HH:mm")
+                    (about @job.EstimatedHours.Value.ToString("0.#") hour(s) from approval)
                 </p>
             }
 
             @if (job.Status == GarageJobCards.Models.JobStatus.AwaitingApproval)
             {
                 <div style="background:var(--oil); border:1px solid var(--steel-dim); border-radius:6px; padding:22px; margin-top:6px;">
-                    <p style="margin-bottom:6px; font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:0.5px;">Quote Ready</p>
-                    <p style="color:var(--paper-dim); font-size:14px; margin-bottom:16px;">
-                        @(job.EstimateAmount.HasValue ? "R" + job.TotalInclVat.ToString("N2") + " (incl. VAT)" : "Contact the shop for the amount") - @job.ServiceRequested
+                    <p style="margin-bottom:6px; font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:0.5px;">Quote Ready - Your Approval Needed</p>
+                    <p style="color:var(--paper-dim); font-size:14px; margin-bottom:6px;">@job.ServiceRequested</p>
+                    <p style="color:var(--paper-dim); font-size:14px; margin-bottom:6px;">
+                        @(job.EstimateAmount.HasValue ? "R" + job.TotalInclVat.ToString("N2") + " (incl. VAT and admin fee)" : "Contact the shop for the amount")
                     </p>
-                    @using (Html.BeginForm("Approve", "JobCard", new { id = job.Id }, FormMethod.Post))
+                    @if (job.EstimatedHours.HasValue)
                     {
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="submit-btn">Approve &amp; Start Work</button>
+                        <p style="color:var(--paper-dim); font-size:13px; margin-bottom:16px;">
+                            Estimated repair time once approved: @job.EstimatedHours.Value.ToString("0.#") hour(s)
+                        </p>
                     }
+
+                    <p style="font-size:13px; color:var(--paper-dim); margin:16px 0 8px;">
+                        By signing below, you confirm you either <strong>agree</strong> to this quote and want the repair to go ahead, or you're <strong>declining</strong> and will collect the vehicle as-is.
+                    </p>
+
+                    <div style="background:#ffffff; border:1px solid var(--steel-dim); border-radius:6px; overflow:hidden; max-width:420px;">
+                        <canvas id="sigCanvas-@job.Id" width="420" height="150" style="display:block; cursor:crosshair; touch-action:none;"></canvas>
+                    </div>
+                    <button type="button" class="btn-ghost" style="margin-top:8px; padding:6px 14px; font-size:11px;" onclick="clearSignature(@job.Id)">Clear Signature</button>
+
+                    <div class="form-row" style="max-width:420px; margin-top:14px;">
+                        <label for="declineReason-@job.Id">Reason for declining (only needed if declining)</label>
+                        <input type="text" id="declineReason-@job.Id" maxlength="500" placeholder="Optional" />
+                    </div>
+
+                    <div style="display:flex; gap:12px; margin-top:16px; flex-wrap:wrap;">
+                        @using (Html.BeginForm("Approve", "JobCard", new { id = job.Id }, FormMethod.Post, new { id = "approveForm-" + job.Id }))
+                        {
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="signatureDataUrl" id="approveSig-@job.Id" />
+                            <button type="button" class="submit-btn" onclick="submitDecision(@job.Id, 'approve')">I Agree - Approve &amp; Sign</button>
+                        }
+                        @using (Html.BeginForm("Decline", "JobCard", new { id = job.Id }, FormMethod.Post, new { id = "declineForm-" + job.Id }))
+                        {
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="signatureDataUrl" id="declineSig-@job.Id" />
+                            <input type="hidden" name="declineReason" id="declineReasonHidden-@job.Id" />
+                            <button type="button" class="btn-ghost" style="color:#ff6b6b; border-color:#ff6b6b;" onclick="submitDecision(@job.Id, 'decline')">I Disagree - Decline &amp; Sign</button>
+                        }
+                    </div>
                 </div>
             }
 
@@ -82,3 +132,90 @@
         </div>
     }
 </div>
+
+@section Scripts {
+    <script>
+        var pads = {};
+
+        function initSignaturePad(jobId) {
+            var canvas = document.getElementById("sigCanvas-" + jobId);
+            if (!canvas) return;
+            var ctx = canvas.getContext("2d");
+            ctx.strokeStyle = "#16202e";
+            ctx.lineWidth = 2;
+            ctx.lineCap = "round";
+            var drawing = false;
+
+            function getPos(e) {
+                var rect = canvas.getBoundingClientRect();
+                var x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+                var y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+                return { x: x, y: y };
+            }
+
+            function start(e) {
+                drawing = true;
+                var pos = getPos(e);
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y);
+                e.preventDefault();
+            }
+            function move(e) {
+                if (!drawing) return;
+                var pos = getPos(e);
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+                e.preventDefault();
+            }
+            function end() { drawing = false; }
+
+            canvas.addEventListener("mousedown", start);
+            canvas.addEventListener("mousemove", move);
+            canvas.addEventListener("mouseup", end);
+            canvas.addEventListener("mouseleave", end);
+            canvas.addEventListener("touchstart", start);
+            canvas.addEventListener("touchmove", move);
+            canvas.addEventListener("touchend", end);
+
+            pads[jobId] = canvas;
+        }
+
+        function clearSignature(jobId) {
+            var canvas = pads[jobId];
+            if (!canvas) return;
+            var ctx = canvas.getContext("2d");
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function isCanvasBlank(canvas) {
+            var blank = document.createElement("canvas");
+            blank.width = canvas.width;
+            blank.height = canvas.height;
+            return canvas.toDataURL() === blank.toDataURL();
+        }
+
+        function submitDecision(jobId, decision) {
+            var canvas = pads[jobId];
+            if (!canvas || isCanvasBlank(canvas)) {
+                alert("Please sign in the box first.");
+                return;
+            }
+            var dataUrl = canvas.toDataURL("image/png");
+
+            if (decision === "approve") {
+                document.getElementById("approveSig-" + jobId).value = dataUrl;
+                document.getElementById("approveForm-" + jobId).submit();
+            } else {
+                document.getElementById("declineSig-" + jobId).value = dataUrl;
+                var reason = document.getElementById("declineReason-" + jobId);
+                document.getElementById("declineReasonHidden-" + jobId).value = reason ? reason.value : "";
+                document.getElementById("declineForm-" + jobId).submit();
+            }
+        }
+
+        document.querySelectorAll("canvas[id^='sigCanvas-']").forEach(function (c) {
+            var jobId = c.id.replace("sigCanvas-", "");
+            initSignaturePad(jobId);
+        });
+    </script>
+}

@@ -1,0 +1,44 @@
+@model IEnumerable<GarageJobCards.Models.Purchase>
+@using System.Linq
+@{
+    ViewData["Title"] = "My Purchases";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="page-head">
+    <h1>My Purchases</h1>
+    <p>Every part you've bought from us, whether collected or delivered.</p>
+</div>
+
+@if (!Model.Any())
+{
+    <p style="color:var(--paper-dim);">No purchases yet - <a href="@Url.Action("Checkout")" style="color:var(--ice);">shop parts online</a> to get started.</p>
+}
+
+<div style="display:flex; flex-direction:column; gap:16px;">
+    @foreach (var p in Model)
+    {
+        <div class="form-card" style="max-width:none;">
+            <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+                <div>
+                    <h3 style="font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:16px;">@p.PurchaseNumber</h3>
+                    <div style="color:var(--steel); font-family:'Space Mono',monospace; font-size:11px; margin-top:4px;">
+                        @p.PurchaseDateUtc.ToLocalTime().ToString("dd MMM yyyy, HH:mm")
+                    </div>
+                </div>
+                <span class="status-badge" style="background:@(p.CollectionMethod == GarageJobCards.Models.CollectionMethod.Delivery ? "linear-gradient(135deg, var(--blue), var(--blue-dim))" : "linear-gradient(135deg, #64748b, #4a5568)");">
+                    @(p.CollectionMethod == GarageJobCards.Models.CollectionMethod.Delivery ? "Delivery" : "Collect from shop")
+                </span>
+            </div>
+
+            <p style="color:var(--paper-dim); font-size:13px; margin-bottom:12px;">
+                @string.Join(", ", p.Items.Select(i => i.Quantity + "x " + i.Product.Name))
+            </p>
+
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-family:'Anton',sans-serif; font-size:18px;">R@(p.GrandTotal.ToString("N2"))</span>
+                <a href="@Url.Action("Receipt", new { id = p.Id })" class="btn-ghost" style="text-decoration:none; padding:8px 16px; font-size:12px;">View Receipt</a>
+            </div>
+        </div>
+    }
+</div>

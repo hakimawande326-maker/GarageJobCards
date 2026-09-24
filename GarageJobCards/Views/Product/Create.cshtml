@@ -1,0 +1,82 @@
+@model GarageJobCards.Models.Product
+@{
+    ViewData["Title"] = "Add Product";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="page-head">
+    <h1>Add a Product</h1>
+    <p>Add a new part to the catalog.</p>
+</div>
+
+<div class="form-card">
+    @using (Html.BeginForm("Create", "Product", FormMethod.Post, new { enctype = "multipart/form-data" }))
+    {
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary(true, "", new { @class = "validation-summary-errors" })
+
+        <div class="form-row">
+            @Html.LabelFor(m => m.Name)
+            @Html.TextBoxFor(m => m.Name, new { maxlength = 100 })
+            @Html.ValidationMessageFor(m => m.Name)
+        </div>
+
+        <div class="form-row">
+            <label for="Category">Category</label>
+            <select name="Category" id="Category">
+                @foreach (GarageJobCards.Models.ProductCategory cat in Enum.GetValues(typeof(GarageJobCards.Models.ProductCategory)))
+                {
+                    @Html.Raw("<option value=\"" + (int)cat + "\">" + GarageJobCards.Models.Product.CategoryLabel(cat) + "</option>")
+                }
+            </select>
+        </div>
+
+        <div class="form-row">
+            @Html.LabelFor(m => m.Description)
+            @Html.TextAreaFor(m => m.Description, new { rows = 3, maxlength = 500, placeholder = "A short, clear description customers will actually read." })
+            @Html.ValidationMessageFor(m => m.Description)
+        </div>
+
+        <div class="form-row">
+            <label for="imageFile">Product photo (optional)</label>
+            <input type="file" name="imageFile" id="imageFile" accept="image/*" />
+            <span style="color:var(--steel); font-size:11px; font-family:'Space Mono',monospace; display:block; margin-top:6px;">
+                JPG or PNG. Shows a placeholder icon in the catalog until you add one.
+            </span>
+        </div>
+
+        <div class="form-grid-2">
+            <div class="form-row">
+                @Html.LabelFor(m => m.Price)
+                @Html.TextBoxFor(m => m.Price, new { type = "number", step = "0.01", min = 0.01 })
+                @Html.ValidationMessageFor(m => m.Price)
+            </div>
+            <div class="form-row">
+                @Html.LabelFor(m => m.StockQuantity)
+                @Html.TextBoxFor(m => m.StockQuantity, new { type = "number", min = 0 })
+                @Html.ValidationMessageFor(m => m.StockQuantity)
+            </div>
+        </div>
+
+        <div class="form-row">
+            @Html.LabelFor(m => m.PartNumber)
+            @Html.TextBoxFor(m => m.PartNumber, new { maxlength = 40 })
+            @Html.ValidationMessageFor(m => m.PartNumber)
+        </div>
+
+        <div class="form-grid-2" style="border-top:1px dashed var(--steel-dim); padding-top:20px; margin-top:6px;">
+            <div class="form-row">
+                @Html.LabelFor(m => m.CompatibleMake)
+                @Html.TextBoxFor(m => m.CompatibleMake, new { maxlength = 40, placeholder = "e.g. Toyota" })
+                @Html.ValidationMessageFor(m => m.CompatibleMake)
+            </div>
+            <div class="form-row">
+                @Html.LabelFor(m => m.CompatibleModel)
+                @Html.TextBoxFor(m => m.CompatibleModel, new { maxlength = 40, placeholder = "e.g. Hilux" })
+                @Html.ValidationMessageFor(m => m.CompatibleModel)
+            </div>
+        </div>
+
+        <button type="submit" class="submit-btn">Add Product</button>
+    }
+</div>

@@ -1,208 +1,235 @@
 @{
- ViewData["Title"] = "Phila's Auto Repair Shop - Umlazi J Section";
- Layout = "~/Views/Shared/_LandingLayout.cshtml";
+    ViewData["Title"] = "Phila's Auto Repair Shop - Umlazi J Section";
+    Layout = "~/Views/Shared/_LandingLayout.cshtml";
 }
 
 
 <header>
- <nav>
- <div class="badge">24/7
- <div class="badge-mark"><span>PA</span></div>
- <div class="badge-text">PHILA'S<small>AUTO REPAIR SHOP</small></div>
- </div>
- <ul>
- <li><a href="#services">Services</a></li>
- <li><a href="#process">Process</a></li>
- <li><a href="#reviews">Reviews</a></li>
- <li><a href="@Url.Action("Login","Account")">Log In / Track</a></li>
- <li><a href="#contact">Contact</a></li>
- </ul>
- <a href="@Url.Action("Login","Account")" class="nav-cta">Log In</a>
- </nav>
+    <nav>
+        <div class="badge">
+            <div class="badge-mark"><span>PA</span></div>
+            <div class="badge-text">PHILA'S<small>AUTO REPAIR SHOP</small></div>
+        </div>
+        <ul>
+            <li><a href="#services">Services</a></li>
+            <li><a href="#process">Process</a></li>
+            <li><a href="#reviews">Reviews</a></li>
+            <li><a href="@Url.Action("Login","Account")">Log In / Track</a></li>
+            <li><a href="#contact">Contact</a></li>
+        </ul>
+        <a href="@Url.Action("Login","Account")" class="nav-cta">Log In</a>
+    </nav>
 </header>
 
 <div class="hazard"></div>
 
 <section class="hero">
- <div class="wrap hero-grid">
- <div>
- <span class="eyebrow">Umlazi J Section - Bays Open Now</span>
- <h1>Umlazi runs<br>on the work<br><span class="accent">we do.</span></h1>
- <p>Family-run right here in J Section. Honest quotes, real diagnostics, and technicians who talk to you straight - no hidden charges, no runaround.</p>
- <div class="hero-actions">
- <a href="@Url.Action("Login","Account")" class="btn-primary">Log In</a>
- <a href="#services" class="btn-ghost">See Services</a>
- </div>
- </div>
- <div class="car-scene">
- <div class="car-canvas-wrap">
- <canvas id="carCanvas"></canvas>
- </div>
- <div class="tach-label">Two Techs, One Bay - Real-Time Diagnostics</div>
- </div>
- </div>
+    <div class="wrap hero-grid">
+        <div>
+            <span class="eyebrow">Umlazi J Section - Bays Open Now</span>
+            <h1>Umlazi runs<br>on the work<br><span class="accent">we do.</span></h1>
+            <p>Family-run right here in J Section. Honest quotes, real diagnostics, and technicians who talk to you straight - no hidden charges, no runaround.</p>
+            <div class="hero-actions">
+                <a href="@Url.Action("Login","Account")" class="btn-primary">Log In</a>
+                <a href="#services" class="btn-ghost">See Services</a>
+            </div>
+        </div>
+        <div class="car-scene">
+            <div class="car-canvas-wrap">
+                <canvas id="carCanvas"></canvas>
+            </div>
+            <div class="tach-label">Two Techs, One Bay - Real-Time Diagnostics</div>
+        </div>
+    </div>
+</section>
+
+<section class="feature-band">
+    <div class="wrap">
+        <div class="feature-grid">
+            <div>
+                <span class="section-tag">Peace of Mind</span>
+                <h2 style="font-family:'Anton',sans-serif; font-size:clamp(28px,4vw,44px); text-transform:uppercase; line-height:1.05; margin-bottom:18px; color:var(--paper);">
+                    Drive Away<br />With Confidence
+                </h2>
+                <p style="color:var(--paper-dim); font-size:15px; line-height:1.7; max-width:440px; margin-bottom:26px;">
+                    Every vehicle that leaves Phila's Auto has been through our full digital job card
+                    process - diagnosed, quoted, signed off by hand, and quality-checked. You get a car
+                    that's genuinely ready for the road, not just paperwork that says so.
+                </p>
+                <a href="@Url.Action("Login","Account")" class="btn-primary" style="background:linear-gradient(135deg, var(--blue), var(--blue-dim)); box-shadow:0 10px 24px -8px rgba(47,111,237,0.4);">Book a Service</a>
+            </div>
+            <div class="feature-image-wrap">
+                <img src="~/Content/images/driving-hero.png"
+                     alt="Mechanic servicing a vehicle at Phila's Auto Repair Shop" />
+                <div class="feature-stat-card">
+                    <div class="num">4.9&#9733;</div>
+                    <div class="label">Customer Rating</div>
+                </div>
+            </div>
+        </div>
+    </div>
 </section>
 
 <div class="stats">
- <div class="wrap stats-grid">
- <div class="stat"><div class="num">15</div><div class="label">Years in Umlazi</div></div>
- <div class="stat"><div class="num">@(ViewBag.TotalCars.ToString("N0"))</div><div class="label">Cars Serviced</div></div>
- <div class="stat"><div class="num">@ViewBag.AvgTurnaroundMinutes min</div><div class="label">Avg. Turnaround</div></div>
- <div class="stat"><div class="num">4.9 / 5</div><div class="label">Shop Rating</div></div>
- </div>
+    <div class="wrap stats-grid">
+        <div class="stat"><div class="num">15</div><div class="label">Years in Umlazi</div></div>
+        <div class="stat"><div class="num">@(ViewBag.TotalCars.ToString("N0"))</div><div class="label">Cars Serviced</div></div>
+        <div class="stat"><div class="num">@ViewBag.AvgTurnaroundMinutes min</div><div class="label">Avg. Turnaround</div></div>
+        <div class="stat"><div class="num">4.9 / 5</div><div class="label">Shop Rating</div></div>
+    </div>
 </div>
 
 <section class="section" id="services">
- <div class="wrap">
- <div class="section-head">
- <div>
- <span class="section-tag">What We Handle</span>
- <h2>Service menu</h2>
- </div>
- <p>Every job starts with a full scan. Flat-rate pricing shown up front - no surprise line items when you pick up the keys.</p>
- </div>
- <div class="services-grid">
- <div class="service-card" tabindex="0">
- <span class="service-index">/ 01</span>
- <h3>Engine Diagnostics</h3>
- <p>Full OBD-II scan, sensor sweep, and a plain-English rundown of exactly what's throwing the code.</p>
- <div class="price">From R850 - 45 min</div>
- </div>
- <div class="service-card" tabindex="0">
- <span class="service-index">/ 02</span>
- <h3>Brakes &amp; Suspension</h3>
- <p>Pads, rotors, struts, and bushings - road-tested after every job so it feels right before it leaves the lot.</p>
- <div class="price">From R1,450 - 90 min</div>
- </div>
- <div class="service-card" tabindex="0">
- <span class="service-index">/ 03</span>
- <h3>Transmission Service</h3>
- <p>Fluid flush, filter swap, and a stress test under load so shifting stays smooth, not sketchy.</p>
- <div class="price">From R1,750 - 2 hrs</div>
- </div>
- <div class="service-card" tabindex="0">
- <span class="service-index">/ 04</span>
- <h3>Oil &amp; Fluid Service</h3>
- <p>Full synthetic, filter, and a 21-point inspection while it's up on the lift - you'll get the checklist back.</p>
- <div class="price">From R550 - 30 min</div>
- </div>
- <div class="service-card" tabindex="0">
- <span class="service-index">/ 05</span>
- <h3>AC &amp; Electrical</h3>
- <p>Refrigerant leaks, dead alternators, wiring gremlins - traced down and fixed, not just reset.</p>
- <div class="price">From R950 - 60 min</div>
- </div>
- <div class="service-card" tabindex="0">
- <span class="service-index">/ 06</span>
- <h3>Tires &amp; Alignment</h3>
- <p>Mount, balance, and laser alignment so your car tracks straight and your treads wear even.</p>
- <div class="price">From R380 - 40 min</div>
- </div>
- </div>
- </div>
+    <div class="wrap">
+        <div class="section-head">
+            <div>
+                <span class="section-tag">What We Handle</span>
+                <h2>Service menu</h2>
+            </div>
+            <p>Every job starts with a full scan. Flat-rate pricing shown up front - no surprise line items when you pick up the keys.</p>
+        </div>
+        <div class="services-grid">
+            <div class="service-card" tabindex="0">
+                <span class="service-index">/ 01</span>
+                <h3>Engine Diagnostics</h3>
+                <p>Full OBD-II scan, sensor sweep, and a plain-English rundown of exactly what's throwing the code.</p>
+                <div class="price">From R850 - 45 min</div>
+            </div>
+            <div class="service-card" tabindex="0">
+                <span class="service-index">/ 02</span>
+                <h3>Brakes &amp; Suspension</h3>
+                <p>Pads, rotors, struts, and bushings - road-tested after every job so it feels right before it leaves the lot.</p>
+                <div class="price">From R1,450 - 90 min</div>
+            </div>
+            <div class="service-card" tabindex="0">
+                <span class="service-index">/ 03</span>
+                <h3>Transmission Service</h3>
+                <p>Fluid flush, filter swap, and a stress test under load so shifting stays smooth, not sketchy.</p>
+                <div class="price">From R1,750 - 2 hrs</div>
+            </div>
+            <div class="service-card" tabindex="0">
+                <span class="service-index">/ 04</span>
+                <h3>Oil &amp; Fluid Service</h3>
+                <p>Full synthetic, filter, and a 21-point inspection while it's up on the lift - you'll get the checklist back.</p>
+                <div class="price">From R550 - 30 min</div>
+            </div>
+            <div class="service-card" tabindex="0">
+                <span class="service-index">/ 05</span>
+                <h3>AC &amp; Electrical</h3>
+                <p>Refrigerant leaks, dead alternators, wiring gremlins - traced down and fixed, not just reset.</p>
+                <div class="price">From R950 - 60 min</div>
+            </div>
+            <div class="service-card" tabindex="0">
+                <span class="service-index">/ 06</span>
+                <h3>Tires &amp; Alignment</h3>
+                <p>Mount, balance, and laser alignment so your car tracks straight and your treads wear even.</p>
+                <div class="price">From R380 - 40 min</div>
+            </div>
+        </div>
+    </div>
 </section>
 
 <div class="hazard"></div>
 
 <section class="process" id="process">
- <div class="wrap">
- <div class="section-head">
- <div>
- <span class="section-tag">From Drop-off to Keys Back</span>
- <h2>How a job runs</h2>
- </div>
- </div>
- <div class="process-list">
- <div class="process-item">
- <div class="process-num">01</div>
- <div><h3>Book a bay</h3><p>Grab a slot online or call ahead - tell us what's wrong, or nothing at all. We'll find it.</p></div>
- </div>
- <div class="process-item">
- <div class="process-num">02</div>
- <div><h3>Full diagnostic scan</h3><p>Every car gets scanned before a wrench touches it. No guessing, no throwing parts at a problem.</p></div>
- </div>
- <div class="process-item">
- <div class="process-num">03</div>
- <div><h3>We call with the verdict</h3><p>You get a flat-rate quote and a plain explanation before we start - approve it or walk away, no pressure.</p></div>
- </div>
- <div class="process-item">
- <div class="process-num">04</div>
- <div><h3>Wrench time</h3><p>Certified techs, OEM-spec parts, and a torque wrench that actually gets used.</p></div>
- </div>
- <div class="process-item">
- <div class="process-num">05</div>
- <div><h3>Road-tested &amp; ready</h3><p>Every job gets a test drive before it goes back to you - because "fixed on paper" doesn't count.</p></div>
- </div>
- </div>
- </div>
+    <div class="wrap">
+        <div class="section-head">
+            <div>
+                <span class="section-tag">From Drop-off to Keys Back</span>
+                <h2>How a job runs</h2>
+            </div>
+        </div>
+        <div class="process-list">
+            <div class="process-item">
+                <div class="process-num">01</div>
+                <div><h3>Book a bay</h3><p>Grab a slot online or call ahead - tell us what's wrong, or nothing at all. We'll find it.</p></div>
+            </div>
+            <div class="process-item">
+                <div class="process-num">02</div>
+                <div><h3>Full diagnostic scan</h3><p>Every car gets scanned before a wrench touches it. No guessing, no throwing parts at a problem.</p></div>
+            </div>
+            <div class="process-item">
+                <div class="process-num">03</div>
+                <div><h3>We call with the verdict</h3><p>You get a flat-rate quote and a plain explanation before we start - approve it or walk away, no pressure.</p></div>
+            </div>
+            <div class="process-item">
+                <div class="process-num">04</div>
+                <div><h3>Wrench time</h3><p>Certified techs, OEM-spec parts, and a torque wrench that actually gets used.</p></div>
+            </div>
+            <div class="process-item">
+                <div class="process-num">05</div>
+                <div><h3>Road-tested &amp; ready</h3><p>Every job gets a test drive before it goes back to you - because "fixed on paper" doesn't count.</p></div>
+            </div>
+        </div>
+    </div>
 </section>
 
 <section class="section" id="reviews">
- <div class="wrap">
- <div class="section-head">
- <div>
- <span class="section-tag">Straight From the Lot</span>
- <h2>Work order feedback</h2>
- </div>
- </div>
- <div class="tickets">
- <div class="ticket">
- <div class="ticket-head"><span>WO #4471</span><span>2016 POLO VIVO</span></div>
- <p class="quote">Told me straight up it wasn't the alternator, saved me over a thousand rand on a bad diagnosis from another place.</p>
- <div class="ticket-foot"><span> - N. Mthembu</span><span class="stars">*****</span></div>
- </div>
- <div class="ticket">
- <div class="ticket-head"><span>WO #4502</span><span>2014 TOYOTA HILUX</span></div>
- <p class="quote">In and out in under an hour for an oil change, and they actually showed me the inspection checklist after.</p>
- <div class="ticket-foot"><span> - S. Zulu</span><span class="stars">*****</span></div>
- </div>
- <div class="ticket">
- <div class="ticket-head"><span>WO #4519</span><span>2019 VW GOLF</span></div>
- <p class="quote">Gearbox was slipping for months. These guys found it in one scan. Runs better than when I bought it.</p>
- <div class="ticket-foot"><span> - T. Ndlovu</span><span class="stars">*****</span></div>
- </div>
- </div>
- </div>
+    <div class="wrap">
+        <div class="section-head">
+            <div>
+                <span class="section-tag">Straight From the Lot</span>
+                <h2>Work order feedback</h2>
+            </div>
+        </div>
+        <div class="tickets">
+            <div class="ticket">
+                <div class="ticket-head"><span>WO #4471</span><span>2016 POLO VIVO</span></div>
+                <p class="quote">Told me straight up it wasn't the alternator, saved me over a thousand rand on a bad diagnosis from another place.</p>
+                <div class="ticket-foot"><span> - N. Mthembu</span><span class="stars">*****</span></div>
+            </div>
+            <div class="ticket">
+                <div class="ticket-head"><span>WO #4502</span><span>2014 TOYOTA HILUX</span></div>
+                <p class="quote">In and out in under an hour for an oil change, and they actually showed me the inspection checklist after.</p>
+                <div class="ticket-foot"><span> - S. Zulu</span><span class="stars">*****</span></div>
+            </div>
+            <div class="ticket">
+                <div class="ticket-head"><span>WO #4519</span><span>2019 VW GOLF</span></div>
+                <p class="quote">Gearbox was slipping for months. These guys found it in one scan. Runs better than when I bought it.</p>
+                <div class="ticket-foot"><span> - T. Ndlovu</span><span class="stars">*****</span></div>
+            </div>
+        </div>
+    </div>
 </section>
 
 <section class="cta-band" id="book">
- <div class="wrap">
- <h2>Get it on the lift.</h2>
- <p>Same-week bays. Flat-rate quotes. Keys back the same day, most of the time.</p>
- <a href="@Url.Action("Login","Account")" class="btn-dark">Log In</a>
- </div>
+    <div class="wrap">
+        <h2>Get it on the lift.</h2>
+        <p>Same-week bays. Flat-rate quotes. Keys back the same day, most of the time.</p>
+        <a href="@Url.Action("Login","Account")" class="btn-dark">Log In</a>
+    </div>
 </section>
 
 <footer id="contact">
- <div class="wrap">
- <div class="footer-grid">
- <div>
- <div class="badge-text" style="margin-bottom:14px;">PHILA'S<small>AUTO REPAIR SHOP</small></div>
- <p style="color:var(--paper-dim); font-size:14px; line-height:1.7; max-width:280px;">Independent shop, 15 years running in J Section. We work on what you drive, not what we wish you drove.</p>
- </div>
- <div>
- <h4>Shop</h4>
- <ul>
- <li><a href="#services">Services</a></li>
- <li><a href="#process">Process</a></li>
- <li><a href="#reviews">Reviews</a></li>
- </ul>
- </div>
- <div>
- <h4>Visit</h4>
- <ul>
- <li>J Section, Umlazi</li>
- <li>Durban, KwaZulu-Natal</li>
- <li>Mon-Sat, 7am-6pm</li>
- <li>+27 78 234 5566</li>
- </ul>
- </div>
- </div>
- <div class="footer-bottom">
- <span>&#169; 2026 PHILA'S AUTO REPAIR SHOP</span>
- <span>ASE CERTIFIED - LICENSED &amp; INSURED</span>
- </div>
- </div>
+    <div class="wrap">
+        <div class="footer-grid">
+            <div>
+                <div class="badge-text" style="margin-bottom:14px;">PHILA'S<small>AUTO REPAIR SHOP</small></div>
+                <p style="color:var(--paper-dim); font-size:14px; line-height:1.7; max-width:280px;">Independent shop, 15 years running in J Section. We work on what you drive, not what we wish you drove.</p>
+            </div>
+            <div>
+                <h4>Shop</h4>
+                <ul>
+                    <li><a href="#services">Services</a></li>
+                    <li><a href="#process">Process</a></li>
+                    <li><a href="#reviews">Reviews</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4>Visit</h4>
+                <ul>
+                    <li>J Section, Umlazi</li>
+                    <li>Durban, KwaZulu-Natal</li>
+                    <li>Mon-Sat, 7am-6pm</li>
+                    <li>+27 78 234 5566</li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <span>&#169; 2026 PHILA'S AUTO REPAIR SHOP</span>
+            <span>ASE CERTIFIED - LICENSED &amp; INSURED</span>
+        </div>
+    </div>
 </footer>
 
 
@@ -229,7 +256,6 @@
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.outputEncoding = THREE.sRGBEncoding;
 
-            // ---------- Procedural studio environment (for paint reflections) ----------
             var envScene = new THREE.Scene();
             var envGeo = new THREE.SphereGeometry(20, 16, 16);
             var envCanvas = document.createElement("canvas");
@@ -250,7 +276,6 @@
             var envMap = pmrem.fromScene(envScene, 0.04).texture;
             scene.environment = envMap;
 
-            // ---------- Lighting ----------
             scene.add(new THREE.AmbientLight(0x2a3548, 0.6));
             var key = new THREE.DirectionalLight(0xbfd9ff, 1.6);
             key.position.set(5, 7, 5);
@@ -266,7 +291,6 @@
             fill.position.set(-3, 2, 4);
             scene.add(fill);
 
-            // ---------- Floor: soft shadow catcher + faint tech grid ----------
             var floor = new THREE.Mesh(
                 new THREE.CircleGeometry(6, 48),
                 new THREE.ShadowMaterial({ opacity: 0.35 })
@@ -282,7 +306,6 @@
             grid.material.opacity = 0.35;
             scene.add(grid);
 
-            // ---------- Materials ----------
             var paintMat = new THREE.MeshPhysicalMaterial({
                 color: 0x14213d, metalness: 0.55, roughness: 0.22,
                 clearcoat: 1.0, clearcoatRoughness: 0.08, envMapIntensity: 1.1
@@ -310,65 +333,48 @@
                 return m;
             }
 
-            // ---------- Hatchback body (generic proportions, not a licensed model) ----------
             var carGroup = new THREE.Group();
-
-            // Lower chassis / rocker panels
             carGroup.add(box(4.0, 0.55, 1.78, paintMat, 0, -0.05, 0));
 
-            // Front hood - sloped
             var hood = box(1.15, 0.42, 1.7, paintMat, 1.55, 0.28, 0, 0, 0, -0.16);
             carGroup.add(hood);
 
-            // Rear deck / hatch base - sloped opposite way
             var rearDeck = box(1.0, 0.4, 1.7, paintMat, -1.6, 0.3, 0, 0, 0, 0.22);
             carGroup.add(rearDeck);
 
-            // Mid cabin floor connecting hood to rear deck
             carGroup.add(box(1.9, 0.5, 1.78, paintMat, 0, 0.22, 0));
 
-            // Windshield (raked)
             var windshield = box(1.05, 0.75, 1.55, glassMat, 0.95, 0.78, 0, 0, 0, -0.62);
             carGroup.add(windshield);
 
-            // Rear glass (raked)
             var rearGlass = box(0.95, 0.7, 1.55, glassMat, -1.05, 0.78, 0, 0, 0, 0.58);
             carGroup.add(rearGlass);
 
-            // Roof
             var roof = box(1.55, 0.14, 1.5, paintMat, -0.05, 1.18, 0);
             carGroup.add(roof);
 
-            // Side glass strip (greenhouse)
             var sideGlassL = box(1.65, 0.42, 0.03, glassMat, -0.05, 0.86, 0.895);
             var sideGlassR = box(1.65, 0.42, 0.03, glassMat, -0.05, 0.86, -0.895);
             carGroup.add(sideGlassL, sideGlassR);
 
-            // Beltline accent stripe (door crease)
             carGroup.add(box(4.02, 0.06, 1.82, paintAccentMat, 0, 0.34, 0));
 
-            // Front + rear bumpers
             carGroup.add(box(0.35, 0.5, 1.85, blackTrimMat, 1.98, -0.08, 0));
             carGroup.add(box(0.3, 0.5, 1.85, blackTrimMat, -2.02, -0.08, 0));
 
-            // Side mirrors
             var mirrorL = box(0.14, 0.12, 0.22, blackTrimMat, 0.9, 0.62, 0.98);
             var mirrorR = box(0.14, 0.12, 0.22, blackTrimMat, 0.9, 0.62, -0.98);
             carGroup.add(mirrorL, mirrorR);
 
-            // Headlights (LED-style, glowing ice blue)
             carGroup.add(box(0.12, 0.16, 0.4, headlightMat, 2.0, 0.32, 0.65));
             carGroup.add(box(0.12, 0.16, 0.4, headlightMat, 2.0, 0.32, -0.65));
 
-            // Taillights
             carGroup.add(box(0.1, 0.22, 0.35, taillightMat, -2.02, 0.35, 0.68));
             carGroup.add(box(0.1, 0.22, 0.35, taillightMat, -2.02, 0.35, -0.68));
 
-            // Door handles
             carGroup.add(box(0.18, 0.04, 0.04, chromeMat, 0.35, 0.4, 0.905));
             carGroup.add(box(0.18, 0.04, 0.04, chromeMat, 0.35, 0.4, -0.905));
 
-            // ---------- Wheels: rim + tire ----------
             var wheelPositions = [
                 [1.35, -0.55, 0.92], [1.35, -0.55, -0.92],
                 [-1.35, -0.55, 0.92], [-1.35, -0.55, -0.92]
@@ -395,7 +401,6 @@
 
             scene.add(carGroup);
 
-            // ---------- Mechanic figures (jointed arms + tools) ----------
             function buildMechanic(overallColor, toolType) {
                 var g = new THREE.Group();
                 var skinMat = new THREE.MeshStandardMaterial({ color: 0xd8ac86, roughness: 0.7 });
@@ -429,7 +434,6 @@
                 var bootL = new THREE.Mesh(bootGeo, bootMat); bootL.position.set(-0.12, 0.03, 0.03); g.add(bootL);
                 var bootR = new THREE.Mesh(bootGeo, bootMat); bootR.position.set(0.12, 0.03, 0.03); g.add(bootR);
 
-                // Jointed left arm (shoulder -> upper arm -> forearm)
                 var shoulderL = new THREE.Group();
                 shoulderL.position.set(-0.3, 1.28, 0);
                 var upperArmL = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.34, 0.14), suitMat);
@@ -445,7 +449,6 @@
                 shoulderL.add(elbowL);
                 g.add(shoulderL);
 
-                // Jointed right (tool) arm
                 var shoulderR = new THREE.Group();
                 shoulderR.position.set(0.3, 1.28, 0);
                 shoulderR.name = "shoulderR";

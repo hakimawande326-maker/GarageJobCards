@@ -1,4 +1,4 @@
-﻿@{
+@{
     ViewData["Title"] = "Enter Code";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
@@ -12,12 +12,6 @@
     @if (ViewBag.Error != null)
     {
         <p style="color:#ff6b6b; margin-bottom:20px;">@ViewBag.Error</p>
-    }
-    @if (ViewBag.DebugOtp != null)
-    {
-        <div style="background:rgba(224,169,66,0.1); border:1px solid #e0a942; border-radius:6px; padding:14px 18px; margin-bottom:20px; text-align:center; font-family:'Space Mono',monospace;">
-            DEBUG ONLY - your code is: <strong style="font-size:18px; letter-spacing:3px;">@ViewBag.DebugOtp</strong>
-        </div>
     }
 
     <div id="countdownBox" style="background:var(--oil); border:1px solid var(--steel-dim); border-radius:6px; padding:14px 18px; margin-bottom:20px; text-align:center;">

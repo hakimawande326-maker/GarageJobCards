@@ -9,7 +9,7 @@
 
 <div class="page-head">
     <h1>Register a Vehicle</h1>
-    <p>Attach a vehicle to a customer's account and open its first job card in one go.</p>
+    <p>Attach a vehicle to a customer's account and open its first job card in one go. A customer can have more than one vehicle on file.</p>
 </div>
 
 <div class="form-card">
@@ -41,6 +41,9 @@
                         @Html.Raw("<option value=\"" + c.Id + "\" " + selected + ">" + c.FullName + " (" + c.Phone + ")</option>")
                     }
                 </select>
+                <span style="color:var(--steel); font-size:11px; font-family:'Space Mono',monospace; display:block; margin-top:6px;">
+                    Adding another vehicle for a customer who's already registered? Just pick them here.
+                </span>
             </div>
 
             <div class="form-grid-2">
@@ -53,6 +56,19 @@
                     @Html.LabelFor(m => m.Model)
                     @Html.TextBoxFor(m => m.Model, new { maxlength = 40, placeholder = "e.g. Golf" })
                     @Html.ValidationMessageFor(m => m.Model)
+                </div>
+            </div>
+
+            <div class="form-grid-2">
+                <div class="form-row">
+                    @Html.LabelFor(m => m.Colour)
+                    @Html.TextBoxFor(m => m.Colour, new { maxlength = 30, placeholder = "e.g. White" })
+                    @Html.ValidationMessageFor(m => m.Colour)
+                </div>
+                <div class="form-row">
+                    @Html.LabelFor(m => m.VinNumber)
+                    @Html.TextBoxFor(m => m.VinNumber, new { maxlength = 17, placeholder = "e.g. WVWZZZ1KZAW123456", style = "text-transform:uppercase;" })
+                    @Html.ValidationMessageFor(m => m.VinNumber)
                 </div>
             </div>
 

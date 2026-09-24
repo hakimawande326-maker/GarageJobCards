@@ -1,4 +1,5 @@
 @model IEnumerable<GarageJobCards.Models.User>
+@using System.Linq
 @{
     ViewData["Title"] = "Manage Accounts";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
@@ -7,7 +8,7 @@
 <div class="page-head" style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px;">
     <div>
         <h1>Manage Accounts</h1>
-        <p>Staff accounts - Receptionists and Mechanics.</p>
+        <p>@Model.Count() staff member(s) - Receptionists and Mechanics.</p>
     </div>
     <a href="@Url.Action("Register","User")" class="submit-btn" style="text-decoration:none; display:inline-block;">+ Register Staff</a>
 </div>
@@ -24,55 +25,69 @@
     <p style="color:#ff6b6b; margin-bottom:20px;">@TempData["Error"]</p>
 }
 
-<div class="form-card" style="max-width:none; padding:0; overflow:hidden;">
-    <table style="width:100%; border-collapse:collapse;">
-        <thead>
-            <tr style="text-align:left; font-family:'Oswald',sans-serif; font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--steel); border-bottom:1px solid var(--steel-dim);">
-                <th style="padding:14px 18px;">Name</th>
-                <th style="padding:14px 18px;">Role</th>
-                <th style="padding:14px 18px;">Email</th>
-                <th style="padding:14px 18px;">Last Login</th>
-                <th style="padding:14px 18px;">Status</th>
-                <th style="padding:14px 18px;"></th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var s in Model)
-            {
-                <tr style="border-bottom:1px solid rgba(255,255,255,0.06); font-family:'Inter',sans-serif; font-size:14px;">
-                    <td style="padding:12px 18px;">@s.FullName</td>
-                    <td style="padding:12px 18px; color:var(--paper-dim);">@s.Role</td>
-                    <td style="padding:12px 18px; color:var(--paper-dim);">@s.Email</td>
-                    <td style="padding:12px 18px; color:var(--paper-dim); font-family:'Space Mono',monospace; font-size:12px;">
-                        @(s.LastLoginUtc.HasValue ? s.LastLoginUtc.Value.ToLocalTime().ToString("dd MMM, HH:mm") : "Never")
-                    </td>
-                    <td style="padding:12px 18px;">
-                        @if (s.IsActive)
+@if (!Model.Any())
+{
+    <p style="color:var(--paper-dim);">No staff registered yet.</p>
+}
+else
+{
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:18px;">
+        @foreach (var staff in Model)
+        {
+            <div class="form-card" style="max-width:none; padding:22px; @(staff.IsActive ? "" : "opacity:0.6;")">
+                <div style="display:flex; gap:14px; align-items:center; margin-bottom:14px;">
+                    <div style="width:64px; height:64px; border-radius:50%; overflow:hidden; flex:0 0 64px; background:var(--asphalt); display:flex; align-items:center; justify-content:center; border:2px solid var(--steel-dim);">
+                        @if (!string.IsNullOrEmpty(staff.ProfilePhotoUrl))
                         {
-                            <span style="color:#4caf50; font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase;">Active</span>
+                            <img src="@Url.Content("~" + staff.ProfilePhotoUrl)" alt="@staff.FullName" style="width:100%; height:100%; object-fit:cover;" />
                         }
                         else
                         {
-                            <span style="color:#ff6b6b; font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase;">Deactivated</span>
+                            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--steel)" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/></svg>
                         }
-                    </td>
-                    <td style="padding:12px 18px; text-align:right; white-space:nowrap;">
-                        <a href="@Url.Action("EditStaff", new { id = s.Id })" class="btn-ghost" style="text-decoration:none; padding:8px 14px; font-size:12px;">Edit</a>
+                    </div>
+                    <div style="min-width:0;">
+                        <h3 style="font-family:'Oswald',sans-serif; font-size:16px; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">@staff.FullName</h3>
+                        <span class="status-badge" style="background:@(staff.Role == GarageJobCards.Models.UserRole.Manager ? "linear-gradient(135deg, var(--blue), var(--blue-dim))" : staff.Role == GarageJobCards.Models.UserRole.Receptionist ? "linear-gradient(135deg, #2e9e9e, #237878)" : "linear-gradient(135deg, #34b872, #279257)");">@staff.Role</span>
+                        @if (!staff.IsActive)
+                        {
+                            <span class="status-badge" style="background:linear-gradient(135deg, #dc4747, #b53434); margin-left:4px;">Deactivated</span>
+                        }
+                    </div>
+                </div>
 
-                        @using (Html.BeginForm("Activate", "User", new { id = s.Id }, FormMethod.Post, new { style = "display:inline-block; margin-left:6px;" }))
+                <div style="font-size:13px; color:var(--paper-dim); line-height:1.8; margin-bottom:16px;">
+                    <div>@staff.Email</div>
+                    <div>@staff.Phone</div>
+                    <div style="font-family:'Space Mono',monospace; font-size:11px; color:var(--steel); margin-top:4px;">
+                        Joined @staff.CreatedAtUtc.ToLocalTime().ToString("dd MMM yyyy")
+                        @if (staff.LastLoginUtc.HasValue)
+                        {
+                            <span> - Last login @staff.LastLoginUtc.Value.ToLocalTime().ToString("dd MMM, HH:mm")</span>
+                        }
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <a href="@Url.Action("EditStaff", new { id = staff.Id })" class="btn-ghost" style="text-decoration:none; padding:8px 14px; font-size:12px;">Edit</a>
+                    @if (staff.IsActive)
+                    {
+                        using (Html.BeginForm("Deactivate", "User", new { id = staff.Id }, FormMethod.Post, new { style = "display:inline-block;", onsubmit = "return confirm('Deactivate " + staff.FullName + "? They will no longer be able to log in.');" }))
                         {
                             @Html.AntiForgeryToken()
-                            <button type="submit" class="btn-ghost" style="padding:8px 14px; font-size:12px; color:#4caf50; border-color:#4caf50;" disabled="@(s.IsActive ? "disabled" : null)">Activate</button>
+                            <button type="submit" class="btn-ghost" style="color:#ff6b6b; border-color:#ff6b6b; padding:8px 14px; font-size:12px;">Deactivate</button>
                         }
-
-                        @using (Html.BeginForm("Deactivate", "User", new { id = s.Id }, FormMethod.Post, new { style = "display:inline-block; margin-left:6px;" }))
+                    }
+                    else
+                    {
+                        using (Html.BeginForm("Activate", "User", new { id = staff.Id }, FormMethod.Post, new { style = "display:inline-block;" }))
                         {
                             @Html.AntiForgeryToken()
-                            <button type="submit" class="btn-ghost" style="padding:8px 14px; font-size:12px; color:#ff6b6b; border-color:#ff6b6b;" disabled="@(!s.IsActive ? "disabled" : null)">Deactivate</button>
+                            <button type="submit" class="submit-btn" style="padding:8px 14px; font-size:12px;">Reactivate</button>
                         }
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-</div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}

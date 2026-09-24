@@ -1,0 +1,48 @@
+@model GarageJobCards.Models.Delivery
+@using System.Linq
+@{
+    ViewData["Title"] = "Arrange Delivery";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    var purchase = ViewBag.Purchase as GarageJobCards.Models.Purchase;
+    var drivers = ViewBag.Drivers as System.Collections.Generic.List<GarageJobCards.Models.User>;
+}
+
+<div class="page-head">
+    <h1>Arrange Delivery</h1>
+    <p>For sale @purchase.PurchaseNumber - @purchase.CustomerDisplayName</p>
+</div>
+
+<div class="form-card">
+    @if (TempData["Error"] != null)
+    {
+        <p style="color:#ff6b6b; margin-bottom:20px;">@TempData["Error"]</p>
+    }
+
+    @using (Html.BeginForm("Create", "Delivery", new { purchaseId = purchase.Id }, FormMethod.Post))
+    {
+        @Html.AntiForgeryToken()
+
+        <div class="form-row">
+            <label for="driverUserId">Driver</label>
+            <select name="driverUserId" id="driverUserId">
+                @if (drivers != null)
+                {
+                    foreach (var d in drivers)
+                    {
+                        @Html.Raw("<option value=\"" + d.Id + "\">" + d.FullName + " (" + d.Role + ")</option>")
+                    }
+                }
+            </select>
+            <span style="color:var(--steel); font-size:11px; font-family:'Space Mono',monospace; display:block; margin-top:6px;">
+                Any staff member can drive an in-house delivery.
+            </span>
+        </div>
+
+        <div class="form-row">
+            <label for="deliveryAddress">Delivery address</label>
+            <textarea name="deliveryAddress" id="deliveryAddress" rows="3" minlength="5" maxlength="300">@Model.DeliveryAddress</textarea>
+        </div>
+
+        <button type="submit" class="submit-btn">Create Delivery</button>
+    }
+</div>

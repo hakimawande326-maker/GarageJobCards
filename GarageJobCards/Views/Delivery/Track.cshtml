@@ -1,0 +1,80 @@
+@model GarageJobCards.Models.Delivery
+@{
+    ViewData["Title"] = "Track " + Model.DeliveryNumber;
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+
+<div class="page-head">
+    <h1>Track @Model.DeliveryNumber</h1>
+    <p>Delivered in-house by our own team, not a courier - live position updates automatically.</p>
+</div>
+
+<div class="form-card" style="max-width:none;">
+    <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:14px; align-items:center; margin-bottom:16px;">
+        <div>
+            <div style="color:var(--steel); font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:1px;">Driver</div>
+            <div style="font-size:15px;">@Model.Driver.FullName</div>
+        </div>
+        <div>
+            <span id="statusBadge" class="status-badge" style="background:linear-gradient(135deg, var(--blue), var(--blue-dim));">@GarageJobCards.Models.Delivery.StatusLabel(Model.Status)</span>
+            <div id="lastUpdateText" style="color:var(--steel); font-family:'Space Mono',monospace; font-size:11px; margin-top:6px;"></div>
+        </div>
+    </div>
+
+    <div id="map" style="width:100%; height:420px; border-radius:8px; border:1px solid var(--steel-dim);"></div>
+
+    <p id="waitingMessage" style="color:var(--paper-dim); font-size:13px; margin-top:14px; text-align:center;">
+        Waiting for your driver's first location update...
+    </p>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script>
+        (function () {
+            var deliveryId = @Model.Id;
+            var map = L.map("map").setView([-29.8587, 31.0218], 12); // Durban, default until first fix
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                attribution: "&copy; OpenStreetMap contributors",
+                maxZoom: 19
+            }).addTo(map);
+
+            var marker = null;
+
+            function poll() {
+                fetch("/Delivery/GetLocation?id=" + deliveryId)
+                    .then(function (r) { return r.json(); })
+                    .then(function (result) {
+                        if (!result.success) return;
+
+                        document.getElementById("statusBadge").textContent = result.statusLabel;
+
+                        if (result.lat && result.lng) {
+                            document.getElementById("waitingMessage").style.display = "none";
+                            var pos = [result.lat, result.lng];
+
+                            if (!marker) {
+                                marker = L.marker(pos).addTo(map);
+                                map.setView(pos, 15);
+                            } else {
+                                marker.setLatLng(pos);
+                            }
+
+                            if (result.lastUpdate) {
+                                document.getElementById("lastUpdateText").textContent = "Updated " + result.lastUpdate;
+                            }
+                        }
+
+                        if (result.status === "Delivered") {
+                            clearInterval(pollTimer);
+                        }
+                    });
+            }
+
+            poll();
+            var pollTimer = setInterval(poll, 8000);
+        })();
+    </script>
+}
