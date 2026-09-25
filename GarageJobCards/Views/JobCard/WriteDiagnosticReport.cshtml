@@ -1,0 +1,49 @@
+@{
+    ViewData["Title"] = "Write Diagnostic Report";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    var job = ViewBag.Job as GarageJobCards.Models.JobCard;
+    var existing = ViewBag.ExistingReport as GarageJobCards.Models.DiagnosticReport;
+}
+
+<div class="page-head">
+    <h1>Write Diagnostic Report</h1>
+    <p>@job.JobNumber - @job.Customer.FullName - @job.Vehicle.Make @job.Vehicle.Model (@job.Vehicle.PlateNumber)</p>
+</div>
+
+@if (TempData["Error"] != null)
+{
+    <p style="color:#ff6b6b; margin-bottom:20px;">@TempData["Error"]</p>
+}
+
+@if (existing != null && existing.Status == GarageJobCards.Models.DiagnosticReportStatus.NeedsRevision)
+{
+    <div style="background:rgba(220,71,71,0.1); border:1px solid #dc4747; border-radius:6px; padding:16px 18px; margin-bottom:20px;">
+        <strong style="color:#dc4747;">Sent back by Manager for revision:</strong>
+        <p style="color:var(--paper-dim); font-size:14px; margin-top:6px;">@existing.ManagerNotes</p>
+    </div>
+}
+
+<div class="form-card">
+    <p style="color:var(--paper-dim); font-size:13px; margin-bottom:16px;">
+        The customer declined this repair and is being charged the full diagnostic fee - they're owed a proper,
+        professional explanation of exactly what you found. This goes to a Manager for approval before the
+        customer sees it.
+    </p>
+
+    <p style="color:var(--steel); font-size:12px; font-family:'Space Mono',monospace; margin-bottom:16px;">
+        Service requested: @job.ServiceRequested
+    </p>
+
+    @using (Html.BeginForm("WriteDiagnosticReport", "JobCard", new { id = job.Id }, FormMethod.Post))
+    {
+        @Html.AntiForgeryToken()
+        <div class="form-row">
+            <label for="reportText">Diagnostic findings</label>
+            <textarea name="reportText" id="reportText" rows="10" minlength="30" maxlength="3000" placeholder="Describe what you found during diagnostics, the underlying issue, why the customer's described symptom occurs, and what the actual repair would have involved. Write this as you would explain it to the customer directly - clear and professional.">@(existing != null ? existing.ReportText : "")</textarea>
+            <span style="color:var(--steel); font-size:11px; font-family:'Space Mono',monospace; display:block; margin-top:6px;">
+                At least 30 characters - give a genuine, professional write-up.
+            </span>
+        </div>
+        <button type="submit" class="submit-btn">Submit for Manager Approval</button>
+    }
+</div>

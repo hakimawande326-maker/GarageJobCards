@@ -79,18 +79,38 @@ namespace GarageJobCards.Models
         public DateTime? DateCompletedUtc { get; set; }
         public DateTime StatusChangedUtc { get; set; }
 
-        // Quotation total: labor/parts + a flat admin fee, then VAT applied
+ // Quotation total: labor/parts + a flat admin fee, then VAT applied
         // on top of both (the admin fee is a taxable service charge too).
         public const decimal AdminFee = 25m;
 
+        // Every job gets diagnosed regardless of what the customer decides
+        // afterward - so this fee always applies, just differently:
+        //  - Decline the repair: pay the full diagnostic fee, since that's
+        //    the only work that happened.
+        //  - Accept the repair: get 30% off the diagnostic fee as a
+        //    goodwill discount, folded into the overall repair total.
+        public const decimal DiagnosticFee = 1080m;
+        public const decimal DiagnosticDiscountPercent = 0.30m;
+
+        public decimal DiagnosticFeeCharged
+        {
+            get
+            {
+                if (CustomerDeclined) return DiagnosticFee;
+                if (CustomerApproved) return Math.Round(DiagnosticFee * (1m - DiagnosticDiscountPercent), 2);
+                return 0m; // customer hasn't decided yet - not charged until they do
+            }
+        }
+
         public decimal SubtotalExclVat
         {
-            get { return EstimateAmount ?? 0; }
+            // If declined, no repair work happens - only the diagnostic fee applies.
+            get { return CustomerDeclined ? 0m : (EstimateAmount ?? 0m); }
         }
 
         public decimal TaxableAmount
         {
-            get { return SubtotalExclVat + AdminFee; }
+            get { return SubtotalExclVat + AdminFee + DiagnosticFeeCharged; }
         }
 
         public decimal VatAmount
@@ -98,9 +118,32 @@ namespace GarageJobCards.Models
             get { return Math.Round(TaxableAmount * 0.15m, 2); }
         }
 
-        public decimal TotalInclVat
+ public decimal TotalInclVat
         {
             get { return TaxableAmount + VatAmount; }
+        }
+
+        // Shown to the customer BEFORE they decide, so they know exactly
+        // what each choice costs - the live properties above only reflect
+        // the real outcome once CustomerApproved/CustomerDeclined is
+        // actually set, which hasn't happened yet at that point.
+        public decimal EstimatedTotalIfApproved
+        {
+            get
+            {
+                var discountedDiagnostic = Math.Round(DiagnosticFee * (1m - DiagnosticDiscountPercent), 2);
+                var taxable = (EstimateAmount ?? 0m) + AdminFee + discountedDiagnostic;
+                return taxable + Math.Round(taxable * 0.15m, 2);
+            }
+        }
+
+        public decimal EstimatedTotalIfDeclined
+        {
+            get
+            {
+                var taxable = DiagnosticFee;
+                return taxable + Math.Round(taxable * 0.15m, 2);
+            }
         }
 
         public string QuotationNumber

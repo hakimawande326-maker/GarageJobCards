@@ -2,20 +2,15 @@
 @{
     ViewData["Title"] = "Quotation " + Model.QuotationNumber;
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
-    var validUntil = Model.SignedAtUtc.Value.ToLocalTime().AddDays(30);
+    var diagnosticReport = ViewBag.DiagnosticReport as GarageJobCards.Models.DiagnosticReport;
 }
 
 <div class="page-head no-print">
-    <h1>Quotation</h1>
-    <p>Signed off and ready - hand a copy to the customer.</p>
+    <h1>@(Model.CustomerDeclined ? "Diagnostic Invoice" : "Quotation")</h1>
+    <p>@Model.QuotationNumber</p>
 </div>
 
-@if (TempData["Error"] != null)
-{
-    <p class="no-print" style="color:#ff6b6b; margin-bottom:20px;">@TempData["Error"]</p>
-}
-
-<div class="ticket-page" style="max-width:720px;">
+<div class="ticket-page" style="max-width:600px;">
     <div class="ticket-top">
         <div>
             <h2>Phila's Auto Repair Shop</h2>
@@ -24,116 +19,98 @@
             <div class="job-number">VAT Reg: 4123456789</div>
         </div>
         <div style="text-align:right;">
-            <div class="job-number">QUOTATION @Model.QuotationNumber</div>
+            <div class="job-number">@(Model.CustomerDeclined ? "INVOICE" : "QUOTATION") @Model.QuotationNumber</div>
             <div class="job-number">Job @Model.JobNumber</div>
-            <div class="job-number">Issued: @Model.SignedAtUtc.Value.ToLocalTime().ToString("dd MMM yyyy")</div>
-            <div class="job-number">Valid until: @validUntil.ToString("dd MMM yyyy")</div>
         </div>
     </div>
 
     <div class="ticket-grid">
         <div class="ticket-field">
-            <div class="k">Quoted to</div>
+            <div class="k">Customer</div>
             <div class="v">@Model.Customer.FullName</div>
         </div>
         <div class="ticket-field">
-            <div class="k">Contact</div>
-            <div class="v">@Model.Customer.Phone</div>
-        </div>
-        <div class="ticket-field">
-            <div class="k">Billing address</div>
-            <div class="v">
-                @(string.IsNullOrEmpty(Model.Customer.Address) ? "-" : Model.Customer.Address)<br />
-                @Model.Customer.City @Model.Customer.PostalCode
-            </div>
-        </div>
-        <div class="ticket-field">
-            <div class="k">Email</div>
-            <div class="v">@Model.Customer.Email</div>
-        </div>
-        <div class="ticket-field">
             <div class="k">Vehicle</div>
-            <div class="v">@Model.Vehicle.Make @Model.Vehicle.Model</div>
+            <div class="v">@Model.Vehicle.Make @Model.Vehicle.Model (@Model.Vehicle.PlateNumber)</div>
         </div>
         <div class="ticket-field">
-            <div class="k">Plate / Mileage</div>
-            <div class="v">@Model.Vehicle.PlateNumber @(Model.Vehicle.Mileage.HasValue ? "- " + Model.Vehicle.Mileage.Value.ToString("N0") + " km" : "")</div>
+            <div class="k">Service Requested</div>
+            <div class="v">@Model.ServiceRequested</div>
         </div>
     </div>
 
-    <div style="border-top:2px dashed rgba(0,0,0,0.25); border-bottom:2px dashed rgba(0,0,0,0.25); padding:18px 0; margin:20px 0;">
-        <table style="width:100%; border-collapse:collapse; font-family:'Inter',sans-serif; font-size:14px;">
-            <thead>
-                <tr style="text-align:left; font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1px; text-transform:uppercase; color:#7a756c;">
-                    <th style="padding-bottom:10px;">Description</th>
-                    <th style="padding-bottom:10px; text-align:right;">Amount</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td style="padding:6px 0;">
-                        @Model.ServiceRequested
-                        @if (Model.EstimatedHours.HasValue)
-                        {
-                            <div style="font-family:'Space Mono',monospace; font-size:11px; color:#7a756c; margin-top:4px;">
-                                Labor: @Model.EstimatedHours.Value.ToString("0.#") hour(s)
-                            </div>
-                        }
-                    </td>
-                    <td style="padding:6px 0; text-align:right;">R@(Model.SubtotalExclVat.ToString("N2"))</td>
-                </tr>
-                <tr>
-                    <td style="padding:6px 0;">Admin fee</td>
-                    <td style="padding:6px 0; text-align:right;">R@(GarageJobCards.Models.JobCard.AdminFee.ToString("N2"))</td>
-                </tr>
-            </tbody>
-        </table>
-
-        <div style="display:flex; justify-content:flex-end; margin-top:14px; padding-top:14px; border-top:1px solid rgba(0,0,0,0.15);">
-            <table style="font-family:'Space Mono',monospace; font-size:13px;">
-                <tr>
-                    <td style="padding:3px 24px 3px 0; color:#7a756c; text-transform:uppercase; letter-spacing:0.5px;">Subtotal</td>
-                    <td style="padding:3px 0; text-align:right;">R@(Model.TaxableAmount.ToString("N2"))</td>
-                </tr>
-                <tr>
-                    <td style="padding:3px 24px 3px 0; color:#7a756c; text-transform:uppercase; letter-spacing:0.5px;">VAT (15%)</td>
-                    <td style="padding:3px 0; text-align:right;">R@(Model.VatAmount.ToString("N2"))</td>
-                </tr>
-                <tr>
-                    <td style="padding-top:10px; font-family:'Anton',sans-serif; font-size:16px; text-transform:uppercase;">Total Due</td>
-                    <td style="padding-top:10px; text-align:right; font-family:'Anton',sans-serif; font-size:22px;">R@(Model.TotalInclVat.ToString("N2"))</td>
-                </tr>
-            </table>
-        </div>
-    </div>
-
-    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:36px; gap:24px;">
-        <div>
-            <div style="font-family:'Space Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:1px; color:#7a756c; margin-bottom:6px;">Serviced by</div>
-            <div style="font-family:'Inter',sans-serif; font-size:14px;">@(Model.AssignedMechanic != null ? Model.AssignedMechanic.FullName : "-")</div>
-        </div>
-
-        <div style="text-align:center;">
-            @if (!string.IsNullOrEmpty(Model.ManagerSignedBy.SignatureImageDataUrl))
-            {
-                <img src="@Model.ManagerSignedBy.SignatureImageDataUrl" alt="Manager signature" style="height:60px; display:block; margin:0 auto;" />
-            }
-            <div style="border-top:1px solid rgba(0,0,0,0.4); padding-top:6px; margin-top:4px; font-family:'Inter',sans-serif; font-size:13px;">
-                @Model.ManagerSignedBy.FullName
-            </div>
-            <div style="font-family:'Space Mono',monospace; font-size:10px; color:#7a756c; text-transform:uppercase; letter-spacing:1px;">
-                Manager - Signed @Model.SignedAtUtc.Value.ToLocalTime().ToString("dd MMM yyyy, HH:mm")
-            </div>
-        </div>
-    </div>
-
-    <div class="ticket-notes" style="margin-top:26px;">
-        <p style="font-size:12px; color:#7a756c;">
-            This quotation is valid for 30 days from the date issued above. Prices may change if the vehicle's
-            condition changes materially before work begins. Parts fitted carry a 90-day warranty against defects;
-            labor carries a 30-day workmanship guarantee. Queries: +27 78 234 5566.
+    @if (Model.CustomerDeclined)
+    {
+        <p style="font-family:'Inter',sans-serif; font-size:13px; color:#5a5650; margin-bottom:16px;">
+            You declined this repair@(string.IsNullOrEmpty(Model.DeclineReason) ? "" : " (" + Model.DeclineReason + ")") - the diagnostic work was still carried out, so the diagnostic fee below applies in full.
         </p>
+    }
+    else
+    {
+        <p style="font-family:'Inter',sans-serif; font-size:13px; color:#5a5650; margin-bottom:16px;">
+            You approved this repair - the diagnostic fee below reflects your 30% approval discount, folded into the total.
+        </p>
+    }
+
+    <div style="border-top:2px dashed rgba(0,0,0,0.25); border-bottom:2px dashed rgba(0,0,0,0.25); padding:18px 0; margin-bottom:20px;">
+        <table style="width:100%; font-family:'Space Mono',monospace; font-size:13px;">
+            @if (!Model.CustomerDeclined)
+            {
+                <tr>
+                    <td style="padding:3px 0; color:#7a756c; text-transform:uppercase; letter-spacing:0.5px;">Repair / Parts</td>
+                    <td style="padding:3px 0; text-align:right;">R@(Model.SubtotalExclVat.ToString("N2", System.Globalization.CultureInfo.InvariantCulture))</td>
+                </tr>
+                <tr>
+                    <td style="padding:3px 0; color:#7a756c; text-transform:uppercase; letter-spacing:0.5px;">Admin Fee</td>
+                    <td style="padding:3px 0; text-align:right;">R@(GarageJobCards.Models.JobCard.AdminFee.ToString("N2", System.Globalization.CultureInfo.InvariantCulture))</td>
+                </tr>
+            }
+            <tr>
+                <td style="padding:3px 0; color:#7a756c; text-transform:uppercase; letter-spacing:0.5px;">
+                    Diagnostic Fee@(!Model.CustomerDeclined ? " (30% off, approved)" : "")
+                </td>
+                <td style="padding:3px 0; text-align:right;">R@(Model.DiagnosticFeeCharged.ToString("N2", System.Globalization.CultureInfo.InvariantCulture))</td>
+            </tr>
+            <tr>
+                <td style="padding:3px 0; color:#7a756c; text-transform:uppercase; letter-spacing:0.5px;">VAT (15%)</td>
+                <td style="padding:3px 0; text-align:right;">R@(Model.VatAmount.ToString("N2", System.Globalization.CultureInfo.InvariantCulture))</td>
+            </tr>
+            <tr>
+                <td style="padding-top:10px; font-family:'Anton',sans-serif; font-size:16px; text-transform:uppercase;">Total Due</td>
+                <td style="padding-top:10px; text-align:right; font-family:'Anton',sans-serif; font-size:22px;">R@(Model.TotalInclVat.ToString("N2", System.Globalization.CultureInfo.InvariantCulture))</td>
+            </tr>
+        </table>
     </div>
+
+    @if (Model.ManagerSignedBy != null)
+    {
+        <div class="ticket-notes">
+            <p style="font-size:12px; color:#7a756c;">Signed off by @Model.ManagerSignedBy.FullName on @Model.SignedAtUtc.Value.ToLocalTime().ToString("dd MMM yyyy")</p>
+        </div>
+    }
+    else if (Model.CustomerDeclined)
+    {
+        <div class="ticket-notes">
+            <p style="font-size:12px; color:#7a756c;">Declined and signed by customer on @Model.DeclinedAtUtc.Value.ToLocalTime().ToString("dd MMM yyyy")</p>
+        </div>
+    }
 </div>
 
-<button onclick="window.print()" class="submit-btn print-btn no-print" style="margin-top:12px;">Print Quotation</button>
+@if (Model.CustomerDeclined && diagnosticReport != null)
+{
+    <div class="form-card no-print" style="max-width:600px; margin:24px auto 0;">
+        <h3 style="font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:15px; margin-bottom:6px;">Diagnostic Findings</h3>
+        <p style="color:var(--steel); font-family:'Space Mono',monospace; font-size:11px; margin-bottom:16px;">
+            Prepared by @diagnosticReport.WrittenBy.FullName - @diagnosticReport.WrittenAtUtc.ToLocalTime().ToString("dd MMM yyyy")
+        </p>
+        <p style="color:var(--paper-dim); font-size:14px; line-height:1.7; white-space:pre-wrap;">@diagnosticReport.ReportText</p>
+    </div>
+}
+else if (Model.CustomerDeclined)
+{
+    <div class="form-card no-print" style="max-width:600px; margin:24px auto 0;">
+        <p style="color:var(--paper-dim); font-size:14px;">Your diagnostic findings report is being prepared and will appear here once ready.</p>
+    </div>
+}
+
+<button onclick="window.print()" class="submit-btn print-btn no-print" style="margin-top:20px; display:block; margin-left:auto; margin-right:auto;">Print</button>

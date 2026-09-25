@@ -43,6 +43,7 @@
             @if (job.Status == GarageJobCards.Models.JobStatus.Cancelled && job.CustomerDeclined)
             {
                 <p style="color:#ff6b6b; font-size:13px; margin-top:14px;">You declined this quote@(string.IsNullOrEmpty(job.DeclineReason) ? "." : ": " + job.DeclineReason)</p>
+                <a href="@Url.Action("Quotation","JobCard", new { id = job.Id })" class="btn-ghost" style="text-decoration:none; display:inline-block; margin-top:10px;">View Diagnostic Invoice - R@(job.TotalInclVat.ToString("N2", System.Globalization.CultureInfo.InvariantCulture))</a>
             }
 
             @if (job.Status != GarageJobCards.Models.JobStatus.Cancelled)
@@ -71,10 +72,21 @@
             {
                 <div style="background:var(--oil); border:1px solid var(--steel-dim); border-radius:6px; padding:22px; margin-top:6px;">
                     <p style="margin-bottom:6px; font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:0.5px;">Quote Ready - Your Approval Needed</p>
-                    <p style="color:var(--paper-dim); font-size:14px; margin-bottom:6px;">@job.ServiceRequested</p>
-                    <p style="color:var(--paper-dim); font-size:14px; margin-bottom:6px;">
-                        @(job.EstimateAmount.HasValue ? "R" + job.TotalInclVat.ToString("N2") + " (incl. VAT and admin fee)" : "Contact the shop for the amount")
-                    </p>
+                    <p style="color:var(--paper-dim); font-size:14px; margin-bottom:16px;">@job.ServiceRequested</p>
+
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
+                        <div style="background:#e6f7ec; border-radius:6px; padding:14px;">
+                            <div style="font-family:'Space Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:#1a7a3f; margin-bottom:4px;">If You Approve</div>
+                            <div style="font-family:'Anton',sans-serif; font-size:20px; color:#1a7a3f;">R@(job.EstimatedTotalIfApproved.ToString("N2", System.Globalization.CultureInfo.InvariantCulture))</div>
+                            <div style="font-size:11px; color:var(--paper-dim); margin-top:4px;">Repair + parts, plus diagnostic fee at 30% off</div>
+                        </div>
+                        <div style="background:#fdeceb; border-radius:6px; padding:14px;">
+                            <div style="font-family:'Space Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:#b23b32; margin-bottom:4px;">If You Decline</div>
+                            <div style="font-family:'Anton',sans-serif; font-size:20px; color:#b23b32;">R@(job.EstimatedTotalIfDeclined.ToString("N2", System.Globalization.CultureInfo.InvariantCulture))</div>
+                            <div style="font-size:11px; color:var(--paper-dim); margin-top:4px;">Diagnostic fee only, full price - no repair done</div>
+                        </div>
+                    </div>
+
                     @if (job.EstimatedHours.HasValue)
                     {
                         <p style="color:var(--paper-dim); font-size:13px; margin-bottom:16px;">

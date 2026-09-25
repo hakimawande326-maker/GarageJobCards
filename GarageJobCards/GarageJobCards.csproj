@@ -147,8 +147,14 @@
     <Compile Include="Infrastructure\PasswordPolicy.cs" />
     <Compile Include="Infrastructure\PayFastHelper.cs" />
     <Compile Include="Infrastructure\RequireRoleAttribute.cs" />
+    <Compile Include="Migrations\202609240720293_InitialCreate.cs" />
+    <Compile Include="Migrations\202609240720293_InitialCreate.Designer.cs">
+      <DependentUpon>202609240720293_InitialCreate.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\AnalyticsViewModel.cs" />
     <Compile Include="Models\Delivery.cs" />
+    <Compile Include="Models\DiagnosticReport.cs" />
     <Compile Include="Models\GarageContext.cs" />
     <Compile Include="Models\JobCard.cs" />
     <Compile Include="Models\Product.cs" />
@@ -186,16 +192,13 @@
     <Content Include="Views\Signature\Index.cshtml" />
     <Content Include="Views\JobCard\Create.cshtml" />
     <Content Include="Views\JobCard\Index.cshtml" />
-    <Content Include="Views\JobCard\MyJobs.cshtml" />
     <Content Include="Views\User\Customers.cshtml" />
     <Content Include="Views\JobCard\Details.cshtml" />
-    <Content Include="Views\JobCard\Quotation.cshtml" />
     <Content Include="Views\Analytics\Index.cshtml" />
     <Content Include="Views\Account\ResetPassword.cshtml" />
     <Content Include="Views\Account\ResetPasswordInvalid.cshtml" />
     <Content Include="Views\Account\ForgotPasswordConfirmation.cshtml" />
     <Content Include="Views\Account\ForgotPasswordExpired.cshtml" />
-    <Content Include="Views\JobCard\MyBookings.cshtml" />
     <Content Include="Views\Vehicle\Create.cshtml" />
     <Content Include="Views\Home\Index.cshtml" />
     <Content Include="Views\Product\Create.cshtml" />
@@ -217,10 +220,20 @@
     <Content Include="Views\Product\Browse.cshtml" />
     <Content Include="Views\Product\Receipt.cshtml" />
     <Content Include="Views\Product\MyPurchases.cshtml" />
-    <Content Include="Views\Shared\_AdminLayout.cshtml" />
     <Content Include="Views\Product\Checkout.cshtml" />
     <Content Include="Views\Product\Purchase.cshtml" />
     <Content Include="Views\Product\PayNow.cshtml" />
+    <Content Include="Views\JobCard\MyBookings.cshtml" />
+    <Content Include="Views\JobCard\MyJobs.cshtml" />
+    <Content Include="Views\JobCard\PendingDiagnosticReports.cshtml" />
+    <Content Include="Views\JobCard\Quotation.cshtml" />
+    <Content Include="Views\JobCard\WriteDiagnosticReport.cshtml" />
+    <Content Include="Views\Shared\_AdminLayout.cshtml" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Migrations\202609240720293_InitialCreate.resx">
+      <DependentUpon>202609240720293_InitialCreate.cs</DependentUpon>
+    </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

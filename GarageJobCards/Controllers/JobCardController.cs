@@ -69,7 +69,7 @@ namespace GarageJobCards.Controllers
             return RedirectToAction("Index");
         }
 
-        [RequireRole(UserRole.Mechanic)]
+ [RequireRole(UserRole.Mechanic)]
         public ActionResult MyJobs()
         {
             var jobs = db.JobCards
@@ -80,6 +80,32 @@ namespace GarageJobCards.Controllers
                          && j.Status != JobStatus.Cancelled)
                 .OrderBy(j => j.StatusChangedUtc)
                 .ToList();
+
+            // Declined jobs assigned to this mechanic that still need a
+            // diagnostic report written (none yet, or sent back for revision).
+            var declinedJobIds = db.JobCards
+                .Where(j => j.AssignedMechanicId == CurrentUserId && j.Status == JobStatus.Cancelled && j.CustomerDeclined)
+                .Select(j => j.Id)
+                .ToList();
+
+            var existingReports = db.DiagnosticReports
+                .Where(r => declinedJobIds.Contains(r.JobCardId))
+                .ToList();
+
+            var jobsNeedingReport = db.JobCards
+                .Include(j => j.Vehicle)
+                .Include(j => j.Customer)
+                .Where(j => declinedJobIds.Contains(j.Id))
+                .ToList()
+                .Where(j =>
+                {
+                    var report = existingReports.FirstOrDefault(r => r.JobCardId == j.Id);
+                    return report == null || report.Status == DiagnosticReportStatus.NeedsRevision;
+                })
+                .ToList();
+
+            ViewBag.JobsNeedingReport = jobsNeedingReport;
+            ViewBag.ReportsByJobId = existingReports.ToDictionary(r => r.JobCardId);
 
             return View(jobs);
         }
@@ -197,7 +223,7 @@ namespace GarageJobCards.Controllers
         }
 
         [RequireRole]
-        public ActionResult Quotation(int id)
+ public ActionResult Quotation(int id)
         {
             var job = db.JobCards
                 .Include(j => j.Vehicle)
@@ -208,6 +234,12 @@ namespace GarageJobCards.Controllers
 
             if (job == null) return HttpNotFound();
 
+            // Only an APPROVED report is ever shown to the customer - one
+            // pending or sent back for revision stays internal.
+            ViewBag.DiagnosticReport = db.DiagnosticReports
+                .Include(r => r.WrittenBy)
+                .FirstOrDefault(r => r.JobCardId == id && r.Status == GarageJobCards.Models.DiagnosticReportStatus.Approved);
+
             bool allowed =
                 CurrentUserRole == UserRole.Receptionist ||
                 CurrentUserRole == UserRole.Manager ||
@@ -216,7 +248,7 @@ namespace GarageJobCards.Controllers
 
             if (!allowed) return new HttpStatusCodeResult(403);
 
-            if (job.ManagerSignedByUserId == null)
+     if (job.ManagerSignedByUserId == null && !job.CustomerDeclined)
             {
                 TempData["Error"] = "This job hasn't been signed off yet - the quotation isn't ready.";
                 return RedirectToAction("Details", new { id = id });
@@ -301,6 +333,123 @@ namespace GarageJobCards.Controllers
             }
 
             return RedirectToAction("MyBookings");
+        }
+
+ // ---------- Mechanic: write a diagnostic report for a declined job ----------
+
+        [RequireRole(UserRole.Mechanic)]
+        public ActionResult WriteDiagnosticReport(int id)
+        {
+            var job = db.JobCards.Include(j => j.Vehicle).Include(j => j.Customer).FirstOrDefault(j => j.Id == id);
+            if (job == null) return HttpNotFound();
+            if (job.AssignedMechanicId != CurrentUserId) return new HttpStatusCodeResult(403);
+            if (!job.CustomerDeclined)
+            {
+                TempData["Error"] = "A diagnostic report is only needed for a job the customer declined.";
+                return RedirectToAction("MyJobs");
+            }
+
+            var existing = db.DiagnosticReports.FirstOrDefault(r => r.JobCardId == id);
+            ViewBag.Job = job;
+            ViewBag.ExistingReport = existing;
+
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireRole(UserRole.Mechanic)]
+        public ActionResult WriteDiagnosticReport(int id, string reportText)
+        {
+            var job = db.JobCards.Find(id);
+            if (job == null) return HttpNotFound();
+            if (job.AssignedMechanicId != CurrentUserId) return new HttpStatusCodeResult(403);
+
+            if (string.IsNullOrWhiteSpace(reportText) || reportText.Trim().Length < 30)
+            {
+                TempData["Error"] = "Give a proper professional write-up - at least 30 characters.";
+                return RedirectToAction("WriteDiagnosticReport", new { id = id });
+            }
+
+            var report = db.DiagnosticReports.FirstOrDefault(r => r.JobCardId == id);
+            if (report == null)
+            {
+                report = new DiagnosticReport
+                {
+                    JobCardId = id,
+                    WrittenByUserId = CurrentUserId.Value,
+                    WrittenAtUtc = DateTime.UtcNow,
+                    ReportText = reportText,
+                    Status = DiagnosticReportStatus.PendingApproval
+                };
+                db.DiagnosticReports.Add(report);
+            }
+            else
+            {
+                // Resubmitting after a Manager sent it back for revision.
+                report.ReportText = reportText;
+                report.WrittenAtUtc = DateTime.UtcNow;
+                report.Status = DiagnosticReportStatus.PendingApproval;
+                report.ManagerNotes = null;
+                report.ReviewedByUserId = null;
+                report.ReviewedAtUtc = null;
+            }
+
+            db.SaveChanges();
+
+            TempData["Success"] = "Diagnostic report submitted for Manager approval.";
+            return RedirectToAction("MyJobs");
+        }
+
+        // ---------- Manager: review diagnostic reports before they reach the customer ----------
+
+        [RequireRole(UserRole.Manager)]
+        public ActionResult PendingDiagnosticReports()
+        {
+            var reports = db.DiagnosticReports
+                .Include(r => r.JobCard.Vehicle)
+                .Include(r => r.JobCard.Customer)
+                .Include(r => r.WrittenBy)
+                .Where(r => r.Status == DiagnosticReportStatus.PendingApproval)
+                .OrderBy(r => r.WrittenAtUtc)
+                .ToList();
+
+            return View(reports);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireRole(UserRole.Manager)]
+        public ActionResult ApproveDiagnosticReport(int id)
+        {
+            var report = db.DiagnosticReports.Find(id);
+            if (report == null) return HttpNotFound();
+
+            report.Status = DiagnosticReportStatus.Approved;
+            report.ReviewedByUserId = CurrentUserId;
+            report.ReviewedAtUtc = DateTime.UtcNow;
+            db.SaveChanges();
+
+            TempData["Success"] = "Report approved - the customer can now see it.";
+            return RedirectToAction("PendingDiagnosticReports");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireRole(UserRole.Manager)]
+        public ActionResult RejectDiagnosticReport(int id, string managerNotes)
+        {
+            var report = db.DiagnosticReports.Find(id);
+            if (report == null) return HttpNotFound();
+
+            report.Status = DiagnosticReportStatus.NeedsRevision;
+            report.ManagerNotes = managerNotes;
+            report.ReviewedByUserId = CurrentUserId;
+            report.ReviewedAtUtc = DateTime.UtcNow;
+            db.SaveChanges();
+
+            TempData["Success"] = "Sent back to the mechanic for revision.";
+            return RedirectToAction("PendingDiagnosticReports");
         }
 
         protected override void Dispose(bool disposing)

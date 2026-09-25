@@ -52,11 +52,12 @@
                     <a href="@Url.Action("Index","Product")" class="@navClass("Product", new[] { "Index" })">Parts Shop</a>
                     <a href="@Url.Action("Purchase","Product")" class="@navClass("Product", new[] { "Purchase", "Receipt" })">New Sale</a>
                 }
-                @if (role == "Manager")
+         @if (role == "Manager")
                 {
                     <a href="@Url.Action("Index","Analytics")" class="@navClass("Analytics", null)">Analytics</a>
                     <a href="@Url.Action("ManageAccounts","User")" class="@navClass("User", new[] { "ManageAccounts", "EditStaff", "Activate", "Deactivate", "ResetStaffPassword" })">Manage Accounts</a>
                     <a href="@Url.Action("ChangeRequests","User")" class="@navClass("User", new[] { "ChangeRequests", "ApproveChangeRequest", "RejectChangeRequest" })">Change Requests</a>
+                    <a href="@Url.Action("PendingDiagnosticReports","JobCard")" class="@navClass("JobCard", new[] { "PendingDiagnosticReports", "ApproveDiagnosticReport", "RejectDiagnosticReport" })">Diagnostic Reports</a>
                     <a href="@Url.Action("Index","Signature")" class="@navClass("Signature", null)">My Signature</a>
                 }
                 @if (role == "Mechanic")

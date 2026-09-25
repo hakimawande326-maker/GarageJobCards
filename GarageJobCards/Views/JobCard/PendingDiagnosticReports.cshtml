@@ -1,0 +1,64 @@
+@model IEnumerable<GarageJobCards.Models.DiagnosticReport>
+@using System.Linq
+@{
+    ViewData["Title"] = "Diagnostic Reports";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="page-head">
+    <h1>Diagnostic Reports</h1>
+    <p>@Model.Count() report(s) awaiting your approval before they reach the customer.</p>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert-success">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span>@TempData["Success"]</span>
+    </div>
+}
+
+@if (!Model.Any())
+{
+    <p style="color:var(--paper-dim);">No reports waiting for review right now.</p>
+}
+
+<div style="display:flex; flex-direction:column; gap:16px;">
+    @foreach (var report in Model)
+    {
+        <div class="form-card" style="max-width:none;">
+            <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+                <div>
+                    <h3 style="font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:16px;">@report.JobCard.JobNumber</h3>
+                    <div style="color:var(--paper-dim); font-size:13px; margin-top:4px;">
+                        @report.JobCard.Customer.FullName - @report.JobCard.Vehicle.Make @report.JobCard.Vehicle.Model
+                    </div>
+                    <div style="color:var(--steel); font-family:'Space Mono',monospace; font-size:11px; margin-top:4px;">
+                        Written by @report.WrittenBy.FullName on @report.WrittenAtUtc.ToLocalTime().ToString("dd MMM yyyy, HH:mm")
+                    </div>
+                </div>
+            </div>
+
+            <div style="background:var(--asphalt); border-radius:6px; padding:16px; margin-bottom:16px; font-size:14px; line-height:1.6; color:var(--paper-dim); white-space:pre-wrap;">@report.ReportText</div>
+
+            <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-start;">
+                @using (Html.BeginForm("ApproveDiagnosticReport", "JobCard", new { id = report.Id }, FormMethod.Post, new { style = "display:inline-block;" }))
+                {
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="submit-btn" style="padding:10px 18px; font-size:12px;">Approve - Send to Customer</button>
+                }
+
+                <div style="flex:1; min-width:240px;">
+                    @using (Html.BeginForm("RejectDiagnosticReport", "JobCard", new { id = report.Id }, FormMethod.Post))
+                    {
+                        @Html.AntiForgeryToken()
+                        <div style="display:flex; gap:8px;">
+                            <input type="text" name="managerNotes" placeholder="Feedback for the mechanic (required to send back)" style="flex:1; background:var(--oil); border:1px solid var(--steel-dim); color:var(--paper); padding:10px 12px; border-radius:4px; font-size:13px;" required="required" />
+                            <button type="submit" class="btn-ghost" style="color:#e0a942; border-color:#e0a942; padding:10px 16px; font-size:12px; white-space:nowrap;">Send Back</button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
