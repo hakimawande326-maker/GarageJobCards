@@ -24,8 +24,6 @@
 
     <button type="button" id="updateLocationBtn" class="submit-btn" style="width:100%; margin-bottom:14px;" onclick="updateLocation()">Update My Location</button>
 
-    <pre id="debugBox" style="display:none; background:rgba(255,107,107,0.1); border:1px solid #ff6b6b; border-radius:6px; padding:14px; font-size:11px; white-space:pre-wrap; word-break:break-word; color:#ff6b6b; margin-bottom:14px;"></pre>
-
     @using (Html.BeginForm("MarkDelivered", "Delivery", new { id = Model.Id }, FormMethod.Post, new { onsubmit = "return confirm('Mark this delivery as complete?');" }))
     {
         @Html.AntiForgeryToken()
@@ -63,13 +61,7 @@
                             body: "id=" + deliveryId + "&lat=" + lat + "&lng=" + lng
                         })
                         .then(function (r) {
-                            if (!r.ok) {
-                                // TEMPORARY: show the server's actual raw response
-                                // so we can see the real error, not a generic message.
-                                return r.text().then(function (text) {
-                                    throw new Error("HTTP " + r.status + ": " + text);
-                                });
-                            }
+                            if (!r.ok) throw new Error("Server error");
                             return r.json();
                         })
                         .then(function (result) {
@@ -85,13 +77,10 @@
                                 statusText.textContent = "Couldn't save your location - try again.";
                             }
                         })
-                        .catch(function (err) {
+                        .catch(function () {
                             btn.disabled = false;
                             btn.textContent = "Update My Location";
-                            statusText.textContent = "Error - see details below.";
-                            var debugBox = document.getElementById("debugBox");
-                            debugBox.style.display = "block";
-                            debugBox.textContent = err.message || String(err);
+                            statusText.textContent = "Couldn't reach the server - check your connection and try again.";
                         });
                     },
                     function (err) {

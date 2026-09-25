@@ -214,7 +214,6 @@
     <Content Include="Views\Delivery\MyDeliveries.cshtml" />
     <Content Include="Views\Delivery\MyOrders.cshtml" />
     <Content Include="Views\Delivery\Track.cshtml" />
-    <Content Include="Views\Delivery\Drive.cshtml" />
     <Content Include="Views\Account\Login.cshtml" />
     <Content Include="Views\User\Register.cshtml" />
     <Content Include="Views\Product\Browse.cshtml" />
@@ -229,6 +228,7 @@
     <Content Include="Views\JobCard\Quotation.cshtml" />
     <Content Include="Views\JobCard\WriteDiagnosticReport.cshtml" />
     <Content Include="Views\Shared\_AdminLayout.cshtml" />
+    <Content Include="Views\Delivery\Drive.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Migrations\202609240720293_InitialCreate.resx">
